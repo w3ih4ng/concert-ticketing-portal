@@ -1,11 +1,7 @@
 from fastapi.testclient import TestClient
 
-from concert_portal.app import app
 
-client = TestClient(app)
-
-
-def test_health() -> None:
+def test_health(client: TestClient) -> None:
     """
     Scenario: API health check
       Given the API is running

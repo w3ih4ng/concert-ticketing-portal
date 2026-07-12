@@ -1,11 +1,7 @@
 from fastapi.testclient import TestClient
 
-from concert_portal.app import app
 
-client = TestClient(app)
-
-
-def test_create_concert() -> None:
+def test_create_concert(client: TestClient) -> None:
     """
     US07 — Create a concert event
       When an organiser POSTs a new concert
