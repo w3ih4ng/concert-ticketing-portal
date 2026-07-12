@@ -5,6 +5,7 @@ Summary: Concert Registration and Ticketing Portal
 Requires-Python: >=3.11
 Requires-Dist: fastapi>=0.115
 Requires-Dist: uvicorn>=0.30
+Requires-Dist: sqlmodel>=0.0.22
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
 Requires-Dist: pytest-cov; extra == "dev"

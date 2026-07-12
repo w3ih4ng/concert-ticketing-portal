@@ -1,25 +1,25 @@
-from itertools import count
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import Depends, FastAPI
+from sqlmodel import Session
 
-app = FastAPI(title="Concert Registration and Ticketing Portal", version="0.1.0")
-
-
-class ConcertCreate(BaseModel):
-    title: str
-    date: str
-    venue: str
-    organiser: str
+from concert_portal.database import get_session, init_db
+from concert_portal.models import Concert, ConcertCreate, ConcertRead
 
 
-class Concert(ConcertCreate):
-    id: int
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Create database tables on startup."""
+    init_db()
+    yield
 
 
-# --- In-memory store (fine for a teaching/demo app) ---
-concerts: dict[int, Concert] = {}
-_concert_ids = count(1)
+app = FastAPI(
+    title="Concert Registration and Ticketing Portal",
+    version="0.1.0",
+    lifespan=lifespan,
+)
 
 
 @app.get("/health")
@@ -28,9 +28,14 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-@app.post("/concerts", response_model=Concert, status_code=201)
-def create_concert(data: ConcertCreate) -> Concert:
+@app.post("/concerts", response_model=ConcertRead, status_code=201)
+def create_concert(
+    data: ConcertCreate,
+    session: Session = Depends(get_session),
+) -> Concert:
     """US07 — Organiser creates a concert event."""
-    concert = Concert(id=next(_concert_ids), **data.model_dump())
-    concerts[concert.id] = concert
+    concert = Concert(**data.model_dump())
+    session.add(concert)
+    session.commit()
+    session.refresh(concert)
     return concert
