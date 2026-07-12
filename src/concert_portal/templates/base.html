@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Concert Portal{% endblock %}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+    header { border-bottom: 2px solid #eee; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+    header a { margin-right: 1rem; text-decoration: none; color: #5b21b6; font-weight: 600; }
+    h1 { color: #5b21b6; }
+    .card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 600; font-size: 0.9rem; }
+    input { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { margin-top: 1rem; background: #5b21b6; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+    button:hover { background: #4c1d95; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">Concerts</a>
+    <a href="/concerts/new">Create Concert</a>
+  </header>
+  {% block content %}{% endblock %}
+</body>
+</html>
