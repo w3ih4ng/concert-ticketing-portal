@@ -12,3 +12,4 @@ src/concert_ticketing_portal.egg-info/top_level.txt
 tests/test_concerts.py
 tests/test_frontend.py
 tests/test_health.py
+tests/test_tickets.py
