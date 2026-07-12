@@ -2,13 +2,20 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Form, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from concert_portal.database import get_session, init_db
-from concert_portal.models import Concert, ConcertCreate, ConcertRead
+from concert_portal.models import (
+    Concert,
+    ConcertCreate,
+    ConcertRead,
+    Ticket,
+    TicketCreate,
+    TicketRead,
+)
 
 
 @asynccontextmanager
@@ -77,3 +84,30 @@ def concert_new_submit(
     session.add(concert)
     session.commit()
     return RedirectResponse(url="/", status_code=303)
+
+
+@app.post("/tickets", response_model=TicketRead, status_code=201)
+def create_ticket(
+    data: TicketCreate,
+    session: Session = Depends(get_session),
+) -> Ticket:
+    """US15/16/17 — Organiser creates a ticket category with price and quantity."""
+    concert = session.get(Concert, data.concert_id)
+    if concert is None:
+        raise HTTPException(status_code=404, detail="Concert not found")
+
+    ticket = Ticket(**data.model_dump())
+    session.add(ticket)
+    session.commit()
+    session.refresh(ticket)
+    return ticket
+
+
+@app.get("/concerts/{concert_id}/tickets", response_model=list[TicketRead])
+def list_tickets(
+    concert_id: int,
+    session: Session = Depends(get_session),
+) -> list[Ticket]:
+    """List all ticket categories for a concert."""
+    tickets = session.exec(select(Ticket).where(Ticket.concert_id == concert_id)).all()
+    return list(tickets)
