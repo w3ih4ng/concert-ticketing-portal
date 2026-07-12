@@ -9,6 +9,9 @@ from sqlmodel import Session, select
 
 from concert_portal.database import get_session, init_db
 from concert_portal.models import (
+    Booking,
+    BookingCreate,
+    BookingRead,
     Concert,
     ConcertCreate,
     ConcertRead,
@@ -111,3 +114,41 @@ def list_tickets(
     """List all ticket categories for a concert."""
     tickets = session.exec(select(Ticket).where(Ticket.concert_id == concert_id)).all()
     return list(tickets)
+
+
+@app.post("/bookings", response_model=BookingRead, status_code=201)
+def create_booking(
+    data: BookingCreate,
+    session: Session = Depends(get_session),
+) -> Booking:
+    """US20/21/19 — Attendee selects tickets and creates a booking.
+
+    Rejects requests for a non-existent ticket, a non-positive quantity,
+    or more tickets than remain available (prevents overselling).
+    """
+    # US20 — the selected ticket must exist
+    ticket = session.get(Ticket, data.ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    # US20 — quantity must be sensible
+    if data.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be at least 1")
+
+    # US19 — prevent overselling
+    remaining = ticket.quantity - ticket.sold
+    if data.quantity > remaining:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Only {remaining} ticket(s) remaining",
+        )
+
+    # US21 — record the booking and reserve the tickets in one transaction
+    booking = Booking(**data.model_dump())
+    ticket.sold += data.quantity
+
+    session.add(booking)
+    session.add(ticket)
+    session.commit()
+    session.refresh(booking)
+    return booking

@@ -47,3 +47,27 @@ class TicketRead(TicketBase):
 
     id: int
     sold: int
+
+
+class BookingBase(SQLModel):
+    ticket_id: int = Field(foreign_key="ticket.id")
+    attendee: str
+    quantity: int  # US20 — how many tickets the attendee selects
+
+
+class Booking(BookingBase, table=True):
+    """Database table."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    status: str = Field(default="pending_payment")
+
+
+class BookingCreate(BookingBase):
+    """What the attendee sends."""
+
+
+class BookingRead(BookingBase):
+    """What the API returns."""
+
+    id: int
+    status: str
