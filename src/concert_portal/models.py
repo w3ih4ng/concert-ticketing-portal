@@ -71,3 +71,15 @@ class BookingRead(BookingBase):
 
     id: int
     status: str
+
+class PaymentProof(SQLModel, table=True):
+    """US24 — Proof of payment attached to a booking."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    booking_id: int = Field(foreign_key="booking.id")
+    filename: str
+
+class PaymentProofRead(SQLModel):
+    id: int
+    booking_id: int
+    filename: str

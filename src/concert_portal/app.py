@@ -6,6 +6,7 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 
 from concert_portal.database import get_session, init_db
 from concert_portal.models import (
@@ -18,6 +19,8 @@ from concert_portal.models import (
     Ticket,
     TicketCreate,
     TicketRead,
+    PaymentProof,
+    PaymentProofRead,
 )
 
 
@@ -152,3 +155,50 @@ def create_booking(
     session.commit()
     session.refresh(booking)
     return booking
+UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
+
+
+@app.get("/bookings/{booking_id}", response_class=HTMLResponse)
+def booking_detail_page(
+    booking_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    """Show a booking and its payment proof status."""
+    booking = session.get(Booking, booking_id)
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    proof = session.exec(
+        select(PaymentProof).where(PaymentProof.booking_id == booking_id)
+    ).first()
+    return templates.TemplateResponse(
+        request,
+        "booking_detail.html",
+        {"booking": booking, "proof": proof},
+    )
+
+
+@app.post("/bookings/{booking_id}/payment-proof")
+def upload_payment_proof(
+    booking_id: int,
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    """US24 — Attendee uploads payment proof for a booking."""
+    booking = session.get(Booking, booking_id)
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    UPLOAD_DIR.mkdir(exist_ok=True)
+    filename = f"booking_{booking_id}_{file.filename}"
+    (UPLOAD_DIR / filename).write_bytes(file.file.read())
+
+    proof = PaymentProof(booking_id=booking_id, filename=filename)
+    booking.status = "payment_uploaded"
+
+    session.add(proof)
+    session.add(booking)
+    session.commit()
+
+    return RedirectResponse(url=f"/bookings/{booking_id}", status_code=303)

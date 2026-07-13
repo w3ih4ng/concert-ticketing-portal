@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Booking #{{ booking.id }}{% endblock %}
+{% block content %}
+<h1>Booking Confirmed</h1>
+<div class="card">
+  <strong>Booking ID:</strong> {{ booking.id }}<br>
+  <strong>Attendee:</strong> {{ booking.attendee }}<br>
+  <strong>Quantity:</strong> {{ booking.quantity }}<br>
+  <strong>Status:</strong> {{ booking.status }}
+</div>
+
+<h2>Payment Proof</h2>
+{% if proof %}
+  <div class="card">Uploaded: {{ proof.filename }}</div>
+{% else %}
+  <form action="/bookings/{{ booking.id }}/payment-proof" method="post"
+        enctype="multipart/form-data">
+    <label>Upload your payment proof</label>
+    <input type="file" name="file" accept="image/*,.pdf" required>
+    <button type="submit">Upload</button>
+  </form>
+{% endif %}
+{% endblock %}
