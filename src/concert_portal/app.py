@@ -152,3 +152,37 @@ def create_booking(
     session.commit()
     session.refresh(booking)
     return booking
+
+
+@app.get("/concerts/{concert_id}", response_class=HTMLResponse)
+def concert_detail_page(
+    concert_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    """US14 — Attendee views concert details and ticket options."""
+    concert = session.get(Concert, concert_id)
+    if concert is None:
+        raise HTTPException(status_code=404, detail="Concert not found")
+
+    tickets = session.exec(select(Ticket).where(Ticket.concert_id == concert_id)).all()
+    return templates.TemplateResponse(
+        request,
+        "concert_detail.html",
+        {"concert": concert, "tickets": list(tickets)},
+    )
+
+
+@app.post("/bookings/new")
+def booking_new_submit(
+    ticket_id: int = Form(...),
+    attendee: str = Form(...),
+    quantity: int = Form(...),
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    """Handle the booking form, reusing the same rules as the API."""
+    booking = create_booking(
+        BookingCreate(ticket_id=ticket_id, attendee=attendee, quantity=quantity),
+        session,
+    )
+    return RedirectResponse(url=f"/bookings/{booking.id}", status_code=303)
