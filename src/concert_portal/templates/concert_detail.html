@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ concert.title }}{% endblock %}
+{% block content %}
+<h1>{{ concert.title }}</h1>
+<div class="card">
+  <strong>Date:</strong> {{ concert.date }}<br>
+  <strong>Venue:</strong> {{ concert.venue }}<br>
+  <strong>Organiser:</strong> {{ concert.organiser }}
+</div>
+
+<h2>Tickets</h2>
+{% if tickets %}
+  <form action="/bookings/new" method="post">
+    {% for ticket in tickets %}
+    {% set remaining = ticket.quantity - ticket.sold %}
+    <div class="card">
+      <label>
+        <input type="radio" name="ticket_id" value="{{ ticket.id }}"
+               {% if remaining <= 0 %}disabled{% endif %} required>
+        <strong>{{ ticket.category }}</strong> — RM {{ "%.2f"|format(ticket.price) }}
+      </label>
+      <small>
+        {% if remaining > 0 %}{{ remaining }} remaining{% else %}Sold out{% endif %}
+      </small>
+    </div>
+    {% endfor %}
+
+    <label>Your name</label>
+    <input name="attendee" required>
+
+    <label>Quantity</label>
+    <input name="quantity" type="number" min="1" value="1" required>
+
+    <button type="submit">Book Tickets</button>
+  </form>
+{% else %}
+  <p>No ticket categories available for this concert yet.</p>
+{% endif %}
+{% endblock %}

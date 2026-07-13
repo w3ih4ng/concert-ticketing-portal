@@ -2,11 +2,10 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 
 from concert_portal.database import get_session, init_db
 from concert_portal.models import (
@@ -155,6 +154,8 @@ def create_booking(
     session.commit()
     session.refresh(booking)
     return booking
+
+
 UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 
 
@@ -169,9 +170,7 @@ def booking_detail_page(
     if booking is None:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    proof = session.exec(
-        select(PaymentProof).where(PaymentProof.booking_id == booking_id)
-    ).first()
+    proof = session.exec(select(PaymentProof).where(PaymentProof.booking_id == booking_id)).first()
     return templates.TemplateResponse(
         request,
         "booking_detail.html",
