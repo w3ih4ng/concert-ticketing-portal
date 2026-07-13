@@ -13,4 +13,5 @@ tests/test_bookings.py
 tests/test_concerts.py
 tests/test_frontend.py
 tests/test_health.py
+tests/test_payment_proof.py
 tests/test_tickets.py
