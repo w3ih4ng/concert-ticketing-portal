@@ -5,7 +5,7 @@
 {% if concerts %}
   {% for concert in concerts %}
   <div class="card">
-    <strong>{{ concert.title }}</strong><br>
+    <strong><a href="/concerts/{{ concert.id }}">{{ concert.title }}</a></strong><br>
     {{ concert.date }} — {{ concert.venue }}<br>
     <small>Organiser: {{ concert.organiser }}</small>
   </div>
