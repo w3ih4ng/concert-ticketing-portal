@@ -2,38 +2,61 @@
 {% block title %}{{ concert.title }}{% endblock %}
 {% block content %}
 <h1>{{ concert.title }}</h1>
-<div class="card">
-  <strong>Date:</strong> {{ concert.date }}<br>
-  <strong>Venue:</strong> {{ concert.venue }}<br>
-  <strong>Organiser:</strong> {{ concert.organiser }}
-</div>
+
+<dl class="info-card surface">
+  <dt>Date</dt>
+  <dd>{{ concert.date }}</dd>
+  <dt>Venue</dt>
+  <dd>{{ concert.venue }}</dd>
+  <dt>Organiser</dt>
+  <dd>{{ concert.organiser }}</dd>
+</dl>
 
 <h2>Tickets</h2>
+
+{% if error %}
+<div class="banner banner-error surface">{{ error }}</div>
+{% endif %}
+
 {% if tickets %}
-  <form action="/bookings/new" method="post">
+<form action="/bookings/new" method="post">
+  <div class="stub-grid">
     {% for ticket in tickets %}
     {% set remaining = ticket.quantity - ticket.sold %}
-    <div class="card">
-      <label>
+    <div class="stub{% if remaining <= 0 %} is-soldout{% endif %}">
+      <div class="stub-main">
+        <div class="stub-category">{{ ticket.category }}</div>
+        <div class="stub-price">RM {{ "%.2f"|format(ticket.price) }}</div>
+      </div>
+      <div class="stub-counterfoil">
         <input type="radio" name="ticket_id" value="{{ ticket.id }}"
                {% if remaining <= 0 %}disabled{% endif %} required>
-        <strong>{{ ticket.category }}</strong> — RM {{ "%.2f"|format(ticket.price) }}
-      </label>
-      <small>
-        {% if remaining > 0 %}{{ remaining }} remaining{% else %}Sold out{% endif %}
-      </small>
+        {% if remaining > 0 %}
+        <span class="badge badge-available">{{ remaining }} left</span>
+        {% else %}
+        <span class="badge badge-soldout">Sold out</span>
+        {% endif %}
+      </div>
+      {% if remaining <= 0 %}
+      <div class="stub-stamp">SOLD OUT</div>
+      {% endif %}
     </div>
     {% endfor %}
+  </div>
 
+  <div class="surface form-card">
     <label>Your name</label>
     <input name="attendee" required>
 
     <label>Quantity</label>
     <input name="quantity" type="number" min="1" value="1" required>
 
-    <button type="submit">Book Tickets</button>
-  </form>
+    <button type="submit">Book tickets</button>
+  </div>
+</form>
 {% else %}
+<div class="surface">
   <p>No ticket categories available for this concert yet.</p>
+</div>
 {% endif %}
 {% endblock %}

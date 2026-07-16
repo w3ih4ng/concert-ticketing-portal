@@ -7,10 +7,14 @@
   <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
 </head>
 <body>
-  <header>
-    <a href="/">Concerts</a>
-    <a href="/concerts/new">Create Concert</a>
-  </header>
-  {% block content %}{% endblock %}
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/">CONCERT<span>PORTAL</span></a>
+      <a class="btn-pill" href="/concerts/new">+ Create Concert</a>
+    </div>
+  </nav>
+  <div class="page">
+    {% block content %}{% endblock %}
+  </div>
 </body>
 </html>
