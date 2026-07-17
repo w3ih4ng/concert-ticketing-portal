@@ -46,6 +46,7 @@ BOOKING_ERROR_MESSAGES = {
     "bad_quantity": "Quantity must be at least 1.",
     "not_found": "That ticket could not be found.",
     "oversold": "Not enough tickets left for that quantity.",
+    "concert_missing": "That concert could not be found.",
 }
 
 
@@ -110,7 +111,8 @@ def concert_new_submit(
     concert = Concert(title=title, date=date, venue=venue, organiser=organiser)
     session.add(concert)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    session.refresh(concert)
+    return RedirectResponse(url=f"/concerts/{concert.id}", status_code=303)
 
 
 @app.post("/tickets", response_model=TicketRead, status_code=201)
@@ -138,6 +140,38 @@ def list_tickets(
     """List all ticket categories for a concert."""
     tickets = session.exec(select(Ticket).where(Ticket.concert_id == concert_id)).all()
     return list(tickets)
+
+
+@app.get("/concerts/{concert_id}/tickets/new", response_class=HTMLResponse)
+def ticket_new_form(
+    concert_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    """US15/16/17 — Show the add-ticket-category form for a concert."""
+    concert = session.get(Concert, concert_id)
+    if concert is None:
+        raise HTTPException(status_code=404, detail="Concert not found")
+    return templates.TemplateResponse(request, "ticket_new.html", {"concert": concert})
+
+
+@app.post("/concerts/{concert_id}/tickets/new")
+def ticket_new_submit(
+    concert_id: int,
+    category: str = Form(...),
+    price: float = Form(...),
+    quantity: int = Form(...),
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    """Handle the HTML ticket form, reusing the same rules as the JSON API."""
+    try:
+        create_ticket(
+            TicketCreate(concert_id=concert_id, category=category, price=price, quantity=quantity),
+            session,
+        )
+    except HTTPException:
+        return RedirectResponse(url="/?error=concert_missing", status_code=303)
+    return RedirectResponse(url=f"/concerts/{concert_id}", status_code=303)
 
 
 @app.post("/bookings", response_model=BookingRead, status_code=201)
