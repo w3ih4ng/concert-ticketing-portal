@@ -2,22 +2,32 @@
 {% block title %}Booking #{{ booking.id }}{% endblock %}
 {% block content %}
 <h1>Booking Confirmed</h1>
-<div class="card">
-  <strong>Booking ID:</strong> {{ booking.id }}<br>
-  <strong>Attendee:</strong> {{ booking.attendee }}<br>
-  <strong>Quantity:</strong> {{ booking.quantity }}<br>
-  <strong>Status:</strong> {{ booking.status }}
-</div>
+
+<dl class="info-card surface">
+  <dt>Booking ID</dt>
+  <dd>#{{ booking.id }}</dd>
+  <dt>Attendee</dt>
+  <dd>{{ booking.attendee }}</dd>
+  <dt>Quantity</dt>
+  <dd>{{ booking.quantity }}</dd>
+  <dt>Status</dt>
+  <dd><span class="badge badge-status">{{ booking.status }}</span></dd>
+</dl>
 
 <h2>Payment Proof</h2>
+
 {% if proof %}
-  <div class="card">Uploaded: {{ proof.filename }}</div>
+<div class="banner banner-success">
+  Payment proof uploaded ({{ proof.filename }}) — we'll confirm your booking shortly.
+</div>
 {% else %}
-  <form action="/bookings/{{ booking.id }}/payment-proof" method="post"
-        enctype="multipart/form-data">
-    <label>Upload your payment proof</label>
-    <input type="file" name="file" accept="image/*,.pdf" required>
-    <button type="submit">Upload</button>
-  </form>
+<form class="surface form-card" action="/bookings/{{ booking.id }}/payment-proof" method="post"
+      enctype="multipart/form-data">
+  <label>Upload your payment proof</label>
+  <input type="file" name="file" accept="image/*,.pdf" required>
+  <button type="submit">Upload proof</button>
+</form>
 {% endif %}
+
+<p><a class="btn-pill" href="/">Back to concerts</a></p>
 {% endblock %}

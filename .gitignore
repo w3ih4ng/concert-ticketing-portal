@@ -14,3 +14,7 @@ htmlcov/
 *.db
 uploads/
 *:Zone.Identifier
+# Claude Code (local tool, not part of project)
+CLAUDE.md
+CLAUDE.local.md
+.claude/

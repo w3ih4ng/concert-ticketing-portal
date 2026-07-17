@@ -2,7 +2,7 @@
 {% block title %}Create Concert{% endblock %}
 {% block content %}
 <h1>Create Concert</h1>
-<form action="/concerts/new" method="post">
+<form class="surface form-card" action="/concerts/new" method="post">
   <label>Title</label>
   <input name="title" required>
   <label>Date</label>
@@ -11,6 +11,6 @@
   <input name="venue" required>
   <label>Organiser</label>
   <input name="organiser" required>
-  <button type="submit">Create Concert</button>
+  <button type="submit">Create concert</button>
 </form>
 {% endblock %}

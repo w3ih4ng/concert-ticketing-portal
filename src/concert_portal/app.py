@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
@@ -36,6 +37,24 @@ app = FastAPI(
 )
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+
+# Short codes carried in redirect query strings (e.g. ?error=oversold) so the
+# URL stays clean; the human-readable wording lives here in one place.
+BOOKING_ERROR_CODES = {400: "bad_quantity", 404: "not_found", 409: "oversold"}
+BOOKING_ERROR_MESSAGES = {
+    "bad_quantity": "Quantity must be at least 1.",
+    "not_found": "That ticket could not be found.",
+    "oversold": "Not enough tickets left for that quantity.",
+    "concert_missing": "That concert could not be found.",
+}
+
+
+def _error_message(code: str | None) -> str | None:
+    """Map a short error code from the query string to display text."""
+    if code is None:
+        return None
+    return BOOKING_ERROR_MESSAGES.get(code, "Something went wrong with that booking.")
 
 
 @app.get("/health")
@@ -62,11 +81,16 @@ def create_concert(
 @app.get("/", response_class=HTMLResponse)
 def concerts_page(
     request: Request,
+    error: str | None = None,
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
     """Show all concerts."""
     concerts = session.exec(select(Concert)).all()
-    return templates.TemplateResponse(request, "concerts.html", {"concerts": concerts})
+    return templates.TemplateResponse(
+        request,
+        "concerts.html",
+        {"concerts": concerts, "error": _error_message(error)},
+    )
 
 
 @app.get("/concerts/new", response_class=HTMLResponse)
@@ -87,7 +111,8 @@ def concert_new_submit(
     concert = Concert(title=title, date=date, venue=venue, organiser=organiser)
     session.add(concert)
     session.commit()
-    return RedirectResponse(url="/", status_code=303)
+    session.refresh(concert)
+    return RedirectResponse(url=f"/concerts/{concert.id}", status_code=303)
 
 
 @app.post("/tickets", response_model=TicketRead, status_code=201)
@@ -115,6 +140,38 @@ def list_tickets(
     """List all ticket categories for a concert."""
     tickets = session.exec(select(Ticket).where(Ticket.concert_id == concert_id)).all()
     return list(tickets)
+
+
+@app.get("/concerts/{concert_id}/tickets/new", response_class=HTMLResponse)
+def ticket_new_form(
+    concert_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    """US15/16/17 — Show the add-ticket-category form for a concert."""
+    concert = session.get(Concert, concert_id)
+    if concert is None:
+        raise HTTPException(status_code=404, detail="Concert not found")
+    return templates.TemplateResponse(request, "ticket_new.html", {"concert": concert})
+
+
+@app.post("/concerts/{concert_id}/tickets/new")
+def ticket_new_submit(
+    concert_id: int,
+    category: str = Form(...),
+    price: float = Form(...),
+    quantity: int = Form(...),
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    """Handle the HTML ticket form, reusing the same rules as the JSON API."""
+    try:
+        create_ticket(
+            TicketCreate(concert_id=concert_id, category=category, price=price, quantity=quantity),
+            session,
+        )
+    except HTTPException:
+        return RedirectResponse(url="/?error=concert_missing", status_code=303)
+    return RedirectResponse(url=f"/concerts/{concert_id}", status_code=303)
 
 
 @app.post("/bookings", response_model=BookingRead, status_code=201)
@@ -162,6 +219,7 @@ UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 def concert_detail_page(
     concert_id: int,
     request: Request,
+    error: str | None = None,
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
     """US14 — Attendee views concert details and ticket options."""
@@ -173,7 +231,7 @@ def concert_detail_page(
     return templates.TemplateResponse(
         request,
         "concert_detail.html",
-        {"concert": concert, "tickets": list(tickets)},
+        {"concert": concert, "tickets": list(tickets), "error": _error_message(error)},
     )
 
 
@@ -184,11 +242,26 @@ def booking_new_submit(
     quantity: int = Form(...),
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
-    """Handle the booking form, reusing the same rules as the API."""
-    booking = create_booking(
-        BookingCreate(ticket_id=ticket_id, attendee=attendee, quantity=quantity),
-        session,
-    )
+    """Handle the booking form, reusing the same rules as the API.
+
+    On failure, redirects back to an HTML page with a short ?error= code
+    instead of letting the underlying HTTPException reach the browser as a
+    raw JSON body — the JSON /bookings endpoint's own error responses are
+    untouched.
+    """
+    try:
+        booking = create_booking(
+            BookingCreate(ticket_id=ticket_id, attendee=attendee, quantity=quantity),
+            session,
+        )
+    except HTTPException as exc:
+        error_code = BOOKING_ERROR_CODES.get(exc.status_code, "unknown")
+        ticket = session.get(Ticket, ticket_id)
+        if ticket is None:
+            return RedirectResponse(url=f"/?error={error_code}", status_code=303)
+        return RedirectResponse(
+            url=f"/concerts/{ticket.concert_id}?error={error_code}", status_code=303
+        )
     return RedirectResponse(url=f"/bookings/{booking.id}", status_code=303)
 
 

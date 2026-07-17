@@ -1,0 +1,10 @@
+ubuntu-condensed-xbold.woff2
+Copyright 2011, 2022, 2023 Canonical Ltd. Licensed under the Ubuntu Font
+Licence 1.0 <https://ubuntu.com/legal/font-licence>.
+
+This file is a single static instance (width=75 "Condensed", weight=800
+"ExtraBold") derived from the Ubuntu variable TrueType font shipped in the
+Debian/Ubuntu "fonts-ubuntu" package, then subset to the Basic Latin range
+plus common punctuation and converted to WOFF2. The Ubuntu Font Licence
+permits embedding and redistributing the font within a document or
+application; source: https://design.ubuntu.com/font/

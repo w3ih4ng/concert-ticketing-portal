@@ -2,15 +2,25 @@
 {% block title %}Concerts{% endblock %}
 {% block content %}
 <h1>Concerts</h1>
+
+{% if error %}
+<div class="banner banner-error">{{ error }}</div>
+{% endif %}
+
 {% if concerts %}
+<div class="concert-grid">
   {% for concert in concerts %}
-  <div class="card">
-    <strong><a href="/concerts/{{ concert.id }}">{{ concert.title }}</a></strong><br>
-    {{ concert.date }} — {{ concert.venue }}<br>
-    <small>Organiser: {{ concert.organiser }}</small>
-  </div>
+  <a class="concert-card surface" href="/concerts/{{ concert.id }}">
+    <div class="title">{{ concert.title }}</div>
+    <div class="meta"><strong>{{ concert.date }}</strong> — {{ concert.venue }}</div>
+    <div class="meta">Organiser: {{ concert.organiser }}</div>
+  </a>
   {% endfor %}
+</div>
 {% else %}
-  <p>No concerts yet. <a href="/concerts/new">Create the first one.</a></p>
+<div class="empty-state surface">
+  <p>No concerts yet — the stage is empty.</p>
+  <a class="btn-pill" href="/concerts/new">Create the first one</a>
+</div>
 {% endif %}
 {% endblock %}
