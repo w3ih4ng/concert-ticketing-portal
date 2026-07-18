@@ -10,6 +10,12 @@
   <dd>{{ booking.attendee }}</dd>
   <dt>Quantity</dt>
   <dd>{{ booking.quantity }}</dd>
+  {% if ticket %}
+  <dt>Ticket</dt>
+  <dd>{{ ticket.category }} — RM {{ "%.2f"|format(ticket.price) }}</dd>
+  <dt>Total</dt>
+  <dd>RM {{ "%.2f"|format(ticket.price * booking.quantity) }}</dd>
+  {% endif %}
   <dt>Status</dt>
   <dd><span class="badge badge-status">{{ booking.status }}</span></dd>
 </dl>
