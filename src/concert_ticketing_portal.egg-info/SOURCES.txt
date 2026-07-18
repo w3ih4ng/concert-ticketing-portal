@@ -9,9 +9,11 @@ src/concert_ticketing_portal.egg-info/SOURCES.txt
 src/concert_ticketing_portal.egg-info/dependency_links.txt
 src/concert_ticketing_portal.egg-info/requires.txt
 src/concert_ticketing_portal.egg-info/top_level.txt
+tests/test_booking_form.py
 tests/test_bookings.py
 tests/test_concerts.py
 tests/test_frontend.py
 tests/test_health.py
+tests/test_organiser_forms.py
 tests/test_payment_proof.py
 tests/test_tickets.py

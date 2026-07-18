@@ -277,10 +277,11 @@ def booking_detail_page(
         raise HTTPException(status_code=404, detail="Booking not found")
 
     proof = session.exec(select(PaymentProof).where(PaymentProof.booking_id == booking_id)).first()
+    ticket = session.get(Ticket, booking.ticket_id)
     return templates.TemplateResponse(
         request,
         "booking_detail.html",
-        {"booking": booking, "proof": proof},
+        {"booking": booking, "proof": proof, "ticket": ticket},
     )
 
 
