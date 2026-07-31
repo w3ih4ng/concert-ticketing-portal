@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Organiser Registration{% endblock %}
+
+{% block content %}
+<section class="auth-shell">
+  <div class="surface form-card auth-card">
+    <p class="eyebrow">Host your event</p>
+    <h1>Create Organiser Account</h1>
+
+    <p class="muted">
+      Submit your personal and organisation information.
+      Organiser accounts remain pending until reviewed.
+    </p>
+
+    {% if registered %}
+    <div class="banner banner-success">
+      Registration submitted successfully.
+      Your organiser account is pending review.
+    </div>
+    {% endif %}
+
+    <form action="/register/organiser" method="post" novalidate>
+      <h2>Personal information</h2>
+
+      <label for="name">Full name</label>
+      <input
+        id="name"
+        name="name"
+        type="text"
+        value="{{ values.name or '' }}"
+        minlength="2"
+        maxlength="100"
+        autocomplete="name"
+        aria-invalid="{{ 'true' if errors.name else 'false' }}"
+        required
+      >
+      {% if errors.name %}
+      <p class="field-error">{{ errors.name }}</p>
+      {% endif %}
+
+      <label for="email">Email address</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        value="{{ values.email or '' }}"
+        maxlength="254"
+        autocomplete="email"
+        aria-invalid="{{ 'true' if errors.email else 'false' }}"
+        required
+      >
+      {% if errors.email %}
+      <p class="field-error">{{ errors.email }}</p>
+      {% endif %}
+
+      <label for="phone">Phone number</label>
+      <input
+        id="phone"
+        name="phone"
+        type="tel"
+        value="{{ values.phone or '' }}"
+        autocomplete="tel"
+        aria-invalid="{{ 'true' if errors.phone else 'false' }}"
+        required
+      >
+      {% if errors.phone %}
+      <p class="field-error">{{ errors.phone }}</p>
+      {% endif %}
+
+      <label for="password">Password</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        minlength="8"
+        maxlength="128"
+        autocomplete="new-password"
+        aria-invalid="{{ 'true' if errors.password else 'false' }}"
+        required
+      >
+      <p class="form-hint">
+        Use at least 8 characters with at least one letter and one number.
+      </p>
+      {% if errors.password %}
+      <p class="field-error">{{ errors.password }}</p>
+      {% endif %}
+
+      <h2>Organisation information</h2>
+
+      <label for="organisation_name">Organisation name</label>
+      <input
+        id="organisation_name"
+        name="organisation_name"
+        type="text"
+        value="{{ values.organisation_name or '' }}"
+        maxlength="150"
+        aria-invalid="{{ 'true' if errors.organisation_name else 'false' }}"
+        required
+      >
+      {% if errors.organisation_name %}
+      <p class="field-error">{{ errors.organisation_name }}</p>
+      {% endif %}
+
+      <label for="registration_number">
+        Organisation registration number
+      </label>
+      <input
+        id="registration_number"
+        name="registration_number"
+        type="text"
+        value="{{ values.registration_number or '' }}"
+        maxlength="50"
+        aria-invalid="{{ 'true' if errors.registration_number else 'false' }}"
+        required
+      >
+      {% if errors.registration_number %}
+      <p class="field-error">{{ errors.registration_number }}</p>
+      {% endif %}
+
+      <label for="organisation_address">Organisation address</label>
+      <textarea
+        id="organisation_address"
+        name="organisation_address"
+        rows="4"
+        maxlength="250"
+        aria-invalid="{{ 'true' if errors.organisation_address else 'false' }}"
+        required
+      >{{ values.organisation_address or '' }}</textarea>
+      {% if errors.organisation_address %}
+      <p class="field-error">{{ errors.organisation_address }}</p>
+      {% endif %}
+
+      <button type="submit">Submit organiser registration</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

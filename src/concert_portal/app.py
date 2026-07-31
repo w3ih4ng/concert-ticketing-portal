@@ -21,6 +21,9 @@ from concert_portal.models import (
     Concert,
     ConcertCreate,
     ConcertRead,
+    OrganiserCreate,
+    OrganiserProfile,
+    OrganiserRead,
     PaymentProof,
     Ticket,
     TicketCreate,
@@ -160,6 +163,213 @@ def register_attendee_record(
     session.refresh(user)
 
     return user
+
+
+# --- SCRUM-12: Organiser registration ---
+
+ORGANISATION_NAME_MIN_LEN = 2
+ORGANISATION_NAME_MAX_LEN = 150
+REGISTRATION_NUMBER_MIN_LEN = 2
+REGISTRATION_NUMBER_MAX_LEN = 50
+ORGANISATION_ADDRESS_MIN_LEN = 5
+ORGANISATION_ADDRESS_MAX_LEN = 250
+
+REGISTRATION_NUMBER_PATTERN = re.compile(r"^[A-Za-z0-9./()\- ]+$")
+
+
+def validate_organiser_registration(
+    name: str,
+    email: str,
+    phone: str,
+    password: str,
+    organisation_name: str,
+    registration_number: str,
+    organisation_address: str,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Validate personal and organisation registration information."""
+
+    errors, values = validate_attendee_registration(
+        name,
+        email,
+        phone,
+        password,
+    )
+
+    cleaned_organisation_name = " ".join(organisation_name.split())
+    cleaned_registration_number = registration_number.strip().upper()
+    cleaned_organisation_address = " ".join(organisation_address.split())
+
+    if not cleaned_organisation_name:
+        errors["organisation_name"] = "Organisation name cannot be blank."
+    elif len(cleaned_organisation_name) < ORGANISATION_NAME_MIN_LEN:
+        errors["organisation_name"] = (
+            "Organisation name must be at least " f"{ORGANISATION_NAME_MIN_LEN} characters."
+        )
+    elif len(cleaned_organisation_name) > ORGANISATION_NAME_MAX_LEN:
+        errors["organisation_name"] = (
+            "Organisation name must be under " f"{ORGANISATION_NAME_MAX_LEN} characters."
+        )
+
+    if not cleaned_registration_number:
+        errors["registration_number"] = "Organisation registration number cannot be blank."
+    elif len(cleaned_registration_number) < REGISTRATION_NUMBER_MIN_LEN:
+        errors["registration_number"] = (
+            "Organisation registration number must be at least "
+            f"{REGISTRATION_NUMBER_MIN_LEN} characters."
+        )
+    elif len(cleaned_registration_number) > REGISTRATION_NUMBER_MAX_LEN:
+        errors["registration_number"] = (
+            "Organisation registration number must be under "
+            f"{REGISTRATION_NUMBER_MAX_LEN} characters."
+        )
+    elif not REGISTRATION_NUMBER_PATTERN.fullmatch(cleaned_registration_number):
+        errors["registration_number"] = (
+            "Organisation registration number contains invalid characters."
+        )
+
+    if not cleaned_organisation_address:
+        errors["organisation_address"] = "Organisation address cannot be blank."
+    elif len(cleaned_organisation_address) < ORGANISATION_ADDRESS_MIN_LEN:
+        errors["organisation_address"] = (
+            "Organisation address must be at least " f"{ORGANISATION_ADDRESS_MIN_LEN} characters."
+        )
+    elif len(cleaned_organisation_address) > ORGANISATION_ADDRESS_MAX_LEN:
+        errors["organisation_address"] = (
+            "Organisation address must be under " f"{ORGANISATION_ADDRESS_MAX_LEN} characters."
+        )
+
+    values.update(
+        {
+            "organisation_name": cleaned_organisation_name,
+            "registration_number": cleaned_registration_number,
+            "organisation_address": cleaned_organisation_address,
+        }
+    )
+
+    return errors, values
+
+
+def find_organiser_by_registration_number(
+    registration_number: str,
+    session: Session,
+) -> OrganiserProfile | None:
+    """Find an organiser request by registration number."""
+
+    normalized_number = registration_number.strip().upper()
+
+    return session.exec(
+        select(OrganiserProfile).where(OrganiserProfile.registration_number == normalized_number)
+    ).first()
+
+
+def organiser_response(
+    user: User,
+    profile: OrganiserProfile,
+) -> OrganiserRead:
+    """Build the safe organiser-registration response."""
+
+    if user.id is None or profile.id is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Organiser registration could not be completed.",
+        )
+
+    return OrganiserRead(
+        id=profile.id,
+        user_id=user.id,
+        name=user.name,
+        email=user.email,
+        phone=user.phone,
+        role=user.role,
+        organisation_name=profile.organisation_name,
+        registration_number=profile.registration_number,
+        organisation_address=profile.organisation_address,
+        status=profile.status,
+    )
+
+
+def register_organiser_record(
+    name: str,
+    email: str,
+    phone: str,
+    password: str,
+    organisation_name: str,
+    registration_number: str,
+    organisation_address: str,
+    session: Session,
+) -> OrganiserRead:
+    """Validate and save an organiser-registration request."""
+
+    errors, values = validate_organiser_registration(
+        name,
+        email,
+        phone,
+        password,
+        organisation_name,
+        registration_number,
+        organisation_address,
+    )
+
+    if errors:
+        raise HTTPException(
+            status_code=422,
+            detail=errors,
+        )
+
+    duplicate_errors: dict[str, str] = {}
+
+    if find_user_by_email(values["email"], session) is not None:
+        duplicate_errors["email"] = "An account with this email already exists."
+
+    if (
+        find_organiser_by_registration_number(
+            values["registration_number"],
+            session,
+        )
+        is not None
+    ):
+        duplicate_errors["registration_number"] = (
+            "An organiser request with this registration number " "already exists."
+        )
+
+    if duplicate_errors:
+        raise HTTPException(
+            status_code=409,
+            detail=duplicate_errors,
+        )
+
+    user = User(
+        name=values["name"],
+        email=values["email"],
+        phone=values["phone"],
+        role="organiser",
+        password_hash=password_hash.hash(password),
+    )
+
+    session.add(user)
+    session.flush()
+
+    if user.id is None:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Organiser account could not be created.",
+        )
+
+    profile = OrganiserProfile(
+        user_id=user.id,
+        organisation_name=values["organisation_name"],
+        registration_number=values["registration_number"],
+        organisation_address=values["organisation_address"],
+        status="pending",
+    )
+
+    session.add(profile)
+    session.commit()
+    session.refresh(user)
+    session.refresh(profile)
+
+    return organiser_response(user, profile)
 
 
 # --- SCRUM-203: Concert field validation (shared by the API and the HTML form) ---
@@ -466,6 +676,115 @@ def attendee_registration_submit(
 
     return RedirectResponse(
         url="/register/attendee?registered=true",
+        status_code=303,
+    )
+
+
+@app.post(
+    "/users/organisers",
+    response_model=OrganiserRead,
+    status_code=201,
+)
+def register_organiser(
+    data: OrganiserCreate,
+    session: Session = Depends(get_session),
+) -> OrganiserRead:
+    """US02 — Submit a new organiser-registration request."""
+
+    return register_organiser_record(
+        data.name,
+        data.email,
+        data.phone,
+        data.password,
+        data.organisation_name,
+        data.registration_number,
+        data.organisation_address,
+        session,
+    )
+
+
+@app.get("/register/organiser", response_class=HTMLResponse)
+def organiser_registration_form(
+    request: Request,
+    registered: bool = False,
+) -> HTMLResponse:
+    """Show the organiser-registration form."""
+
+    return templates.TemplateResponse(
+        request,
+        "organiser_register.html",
+        {
+            "errors": {},
+            "values": {},
+            "registered": registered,
+        },
+    )
+
+
+@app.post("/register/organiser", response_model=None)
+def organiser_registration_submit(
+    request: Request,
+    name: str = Form(""),
+    email: str = Form(""),
+    phone: str = Form(""),
+    password: str = Form(""),
+    organisation_name: str = Form(""),
+    registration_number: str = Form(""),
+    organisation_address: str = Form(""),
+    session: Session = Depends(get_session),
+) -> RedirectResponse | HTMLResponse:
+    """Validate and process an organiser-registration request."""
+
+    errors, values = validate_organiser_registration(
+        name,
+        email,
+        phone,
+        password,
+        organisation_name,
+        registration_number,
+        organisation_address,
+    )
+
+    if not errors:
+        if find_user_by_email(values["email"], session) is not None:
+            errors["email"] = "An account with this email already exists."
+
+        if (
+            find_organiser_by_registration_number(
+                values["registration_number"],
+                session,
+            )
+            is not None
+        ):
+            errors["registration_number"] = (
+                "An organiser request with this registration number " "already exists."
+            )
+
+    if errors:
+        return templates.TemplateResponse(
+            request,
+            "organiser_register.html",
+            {
+                "errors": errors,
+                "values": values,
+                "registered": False,
+            },
+            status_code=422,
+        )
+
+    register_organiser_record(
+        values["name"],
+        values["email"],
+        values["phone"],
+        password,
+        values["organisation_name"],
+        values["registration_number"],
+        values["organisation_address"],
+        session,
+    )
+
+    return RedirectResponse(
+        url="/register/organiser?registered=true",
         status_code=303,
     )
 
