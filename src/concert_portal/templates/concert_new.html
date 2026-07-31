@@ -4,13 +4,21 @@
 <h1>Create Concert</h1>
 <form class="surface form-card" action="/concerts/new" method="post">
   <label>Title</label>
-  <input name="title" required>
+  <input name="title" value="{{ values.title or '' }}" required>
+  {% if errors.title %}<p class="field-error">{{ errors.title }}</p>{% endif %}
+
   <label>Date</label>
-  <input name="date" type="date" required>
+  <input name="date" type="date" value="{{ values.date or '' }}" required>
+  {% if errors.date %}<p class="field-error">{{ errors.date }}</p>{% endif %}
+
   <label>Venue</label>
-  <input name="venue" required>
+  <input name="venue" value="{{ values.venue or '' }}" required>
+  {% if errors.venue %}<p class="field-error">{{ errors.venue }}</p>{% endif %}
+
   <label>Organiser</label>
-  <input name="organiser" required>
+  <input name="organiser" value="{{ values.organiser or '' }}" required>
+  {% if errors.organiser %}<p class="field-error">{{ errors.organiser }}</p>{% endif %}
+
   <button type="submit">Create concert</button>
 </form>
 {% endblock %}
