@@ -4,7 +4,6 @@ from sqlmodel import Session, select
 
 from concert_portal.models import Booking, Concert, Ticket, User
 
-
 password_hash = PasswordHash.recommended()
 
 
@@ -259,9 +258,7 @@ def test_history_displays_newest_booking_first(
     response = client.get("/bookings/history")
 
     assert response.status_code == 200
-    assert response.text.index("Second Concert") < response.text.index(
-        "First Concert"
-    )
+    assert response.text.index("Second Concert") < response.text.index("First Concert")
 
 
 def test_logged_in_booking_is_linked_to_attendee_account(
@@ -295,9 +292,7 @@ def test_logged_in_booking_is_linked_to_attendee_account(
 
     assert response.status_code == 303
 
-    booking = session.exec(
-        select(Booking).where(Booking.user_id == user.id)
-    ).first()
+    booking = session.exec(select(Booking).where(Booking.user_id == user.id)).first()
 
     assert booking is not None
     assert booking.user_id == user.id
@@ -334,9 +329,7 @@ def test_logged_in_booking_uses_registered_user_name(
 
     assert response.status_code == 303
 
-    booking = session.exec(
-        select(Booking).where(Booking.user_id == user.id)
-    ).first()
+    booking = session.exec(select(Booking).where(Booking.user_id == user.id)).first()
 
     assert booking is not None
     assert booking.attendee == "Alyssa Loh"

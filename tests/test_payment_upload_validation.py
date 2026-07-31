@@ -1,0 +1,403 @@
+import io
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+from sqlmodel import Session, select
+
+from concert_portal.models import (
+    Booking,
+    Concert,
+    PaymentProof,
+    Ticket,
+)
+from concert_portal.services.payments import (
+    MAX_PAYMENT_PROOF_SIZE,
+)
+from concert_portal.web import UPLOAD_DIR
+
+PNG_CONTENT = b"\x89PNG\r\n\x1a\n" b"valid png payment proof"
+
+JPEG_CONTENT = b"\xff\xd8\xff\xe0" b"valid jpeg payment proof"
+
+PDF_CONTENT = b"%PDF-1.4\n" b"valid pdf payment proof"
+
+
+def _create_booking(
+    session: Session,
+    *,
+    booking_status: str = "pending_payment",
+) -> Booking:
+    concert = Concert(
+        title="Payment Test Concert",
+        date="2027-02-10",
+        venue="National Stadium",
+        organiser="Live Events",
+    )
+
+    session.add(concert)
+    session.commit()
+    session.refresh(concert)
+
+    assert concert.id is not None
+
+    ticket = Ticket(
+        concert_id=concert.id,
+        category="General",
+        price=80.00,
+        quantity=100,
+        sold=1,
+    )
+
+    session.add(ticket)
+    session.commit()
+    session.refresh(ticket)
+
+    assert ticket.id is not None
+
+    booking = Booking(
+        ticket_id=ticket.id,
+        attendee="Test Attendee",
+        quantity=1,
+        status=booking_status,
+    )
+
+    session.add(booking)
+    session.commit()
+    session.refresh(booking)
+
+    return booking
+
+
+def _uploaded_files() -> set[Path]:
+    if not UPLOAD_DIR.exists():
+        return set()
+
+    return {path for path in UPLOAD_DIR.iterdir() if path.is_file()}
+
+
+def test_valid_png_payment_proof_is_uploaded(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(session)
+
+    assert booking.id is not None
+
+    response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "receipt.png",
+                io.BytesIO(PNG_CONTENT),
+                "image/png",
+            )
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == (f"/bookings/{booking.id}")
+
+    session.refresh(booking)
+
+    assert booking.status == "payment_uploaded"
+
+    proof = session.exec(select(PaymentProof).where(PaymentProof.booking_id == booking.id)).first()
+
+    assert proof is not None
+    assert proof.filename.endswith(".png")
+    assert proof.filename.startswith(f"booking_{booking.id}_")
+
+
+def test_valid_jpeg_payment_proof_is_uploaded(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(session)
+
+    assert booking.id is not None
+
+    response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "receipt.jpeg",
+                io.BytesIO(JPEG_CONTENT),
+                "image/jpeg",
+            )
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+
+    proof = session.exec(select(PaymentProof).where(PaymentProof.booking_id == booking.id)).first()
+
+    assert proof is not None
+    assert proof.filename.endswith(".jpeg")
+
+
+def test_valid_pdf_payment_proof_is_uploaded(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(session)
+
+    assert booking.id is not None
+
+    response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "receipt.pdf",
+                io.BytesIO(PDF_CONTENT),
+                "application/pdf",
+            )
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+
+    proof = session.exec(select(PaymentProof).where(PaymentProof.booking_id == booking.id)).first()
+
+    assert proof is not None
+    assert proof.filename.endswith(".pdf")
+
+
+def test_unsupported_extension_is_rejected(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(session)
+
+    assert booking.id is not None
+
+    response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "receipt.exe",
+                io.BytesIO(b"invalid executable"),
+                "application/octet-stream",
+            )
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "Payment proof must be a JPG, JPEG, PNG or PDF file." in response.text
+
+    session.refresh(booking)
+
+    assert booking.status == "pending_payment"
+
+
+def test_mismatched_content_type_is_rejected(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(session)
+
+    assert booking.id is not None
+
+    response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "receipt.png",
+                io.BytesIO(PNG_CONTENT),
+                "application/pdf",
+            )
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "The uploaded file type does not match " "its filename extension." in response.text
+
+
+def test_invalid_file_signature_is_rejected(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(session)
+
+    assert booking.id is not None
+
+    response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "receipt.png",
+                io.BytesIO(b"not really a png"),
+                "image/png",
+            )
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "The uploaded file content is not a valid PNG file." in response.text
+
+
+def test_empty_payment_proof_is_rejected(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(session)
+
+    assert booking.id is not None
+
+    response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "receipt.png",
+                io.BytesIO(b""),
+                "image/png",
+            )
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "The uploaded payment proof file is empty." in response.text
+
+
+def test_oversized_payment_proof_is_rejected(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(session)
+
+    assert booking.id is not None
+
+    oversized_content = b"\x89PNG\r\n\x1a\n" + b"x" * MAX_PAYMENT_PROOF_SIZE
+
+    response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "large.png",
+                io.BytesIO(oversized_content),
+                "image/png",
+            )
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "Payment proof files must not exceed 5 MB." in response.text
+
+
+def test_duplicate_payment_proof_is_rejected(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(session)
+
+    assert booking.id is not None
+
+    first_response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "first.png",
+                io.BytesIO(PNG_CONTENT),
+                "image/png",
+            )
+        },
+        follow_redirects=False,
+    )
+
+    assert first_response.status_code == 303
+
+    second_response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "second.png",
+                io.BytesIO(PNG_CONTENT),
+                "image/png",
+            )
+        },
+        follow_redirects=True,
+    )
+
+    assert second_response.status_code == 200
+    assert "A payment proof has already been submitted " "for this booking." in second_response.text
+
+    proofs = session.exec(select(PaymentProof).where(PaymentProof.booking_id == booking.id)).all()
+
+    assert len(proofs) == 1
+
+
+def test_cancelled_booking_cannot_upload_proof(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(
+        session,
+        booking_status="cancelled",
+    )
+
+    assert booking.id is not None
+
+    response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "receipt.png",
+                io.BytesIO(PNG_CONTENT),
+                "image/png",
+            )
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "Cancelled bookings cannot upload payment proof." in response.text
+
+
+def test_unsafe_original_filename_is_not_stored(
+    client: TestClient,
+    session: Session,
+) -> None:
+    booking = _create_booking(session)
+
+    assert booking.id is not None
+
+    files_before = _uploaded_files()
+
+    response = client.post(
+        f"/bookings/{booking.id}/payment-proof",
+        files={
+            "file": (
+                "../../dangerous.png",
+                io.BytesIO(PNG_CONTENT),
+                "image/png",
+            )
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+
+    proof = session.exec(select(PaymentProof).where(PaymentProof.booking_id == booking.id)).first()
+
+    assert proof is not None
+    assert ".." not in proof.filename
+    assert "/" not in proof.filename
+    assert "\\" not in proof.filename
+    assert proof.filename.startswith(f"booking_{booking.id}_")
+
+    files_after = _uploaded_files()
+    created_files = files_after - files_before
+
+    assert len(created_files) == 1
+
+    stored_file = created_files.pop()
+
+    assert stored_file.parent == UPLOAD_DIR
+    assert stored_file.name == proof.filename
