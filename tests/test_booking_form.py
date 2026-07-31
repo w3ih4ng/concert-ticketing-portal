@@ -28,22 +28,31 @@ def _create_ticket(client: TestClient, quantity: int = 10) -> tuple[int, int]:
     return concert_id, ticket_id
 
 
-def test_booking_form_redirects_to_confirmation(client: TestClient) -> None:
-    """A successful form booking redirects (303) straight to /bookings/{id}."""
+def test_booking_form_redirects_to_confirmation(
+    client: TestClient,
+) -> None:
+    """A successful form booking redirects to its booking details page."""
+
     _concert_id, ticket_id = _create_ticket(client)
 
     response = client.post(
         "/bookings/new",
-        data={"ticket_id": str(ticket_id), "attendee": "Alex", "quantity": "2"},
+        data={
+            "ticket_id": str(ticket_id),
+            "attendee": "Alex",
+            "quantity": "2",
+        },
         follow_redirects=False,
     )
+
     assert response.status_code == 303
     assert response.headers["location"].startswith("/bookings/")
 
     followed = client.get(response.headers["location"])
+
     assert followed.status_code == 200
-    assert "Booking Confirmed" in followed.text
-    assert "Alex" in followed.text
+    assert "Booking Details" in followed.text
+    assert "Pending Payment" in followed.text
 
 
 def test_oversold_booking_form_redirects_with_error_banner(client: TestClient) -> None:

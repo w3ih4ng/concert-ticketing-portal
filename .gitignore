@@ -18,3 +18,5 @@ uploads/
 CLAUDE.md
 CLAUDE.local.md
 .claude/
+src/concert_portal/uploads/*
+!src/concert_portal/uploads/.gitkeep

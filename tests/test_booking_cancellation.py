@@ -257,14 +257,15 @@ def test_cancelled_booking_cannot_upload_payment_proof(
         files={
             "file": (
                 "receipt.png",
-                b"fake image data",
+                b"\x89PNG\r\n\x1a\nvalid payment proof",
                 "image/png",
             )
         },
+        follow_redirects=True,
     )
 
-    assert upload_response.status_code == 409
-    assert "Cancelled bookings" in upload_response.json()["detail"]
+    assert upload_response.status_code == 200
+    assert "Cancelled bookings cannot upload payment proof." in upload_response.text
 
 
 def test_cancelling_one_booking_does_not_change_other_bookings(

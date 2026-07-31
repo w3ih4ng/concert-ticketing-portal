@@ -220,6 +220,7 @@ def booking_detail_page(
     request: Request,
     message: str | None = None,
     error: str | None = None,
+    payment_error: str | None = None,
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
     """Show a booking, payment proof status, and cancellation result."""
@@ -245,6 +246,7 @@ def booking_detail_page(
             "ticket": ticket,
             "message": _cancellation_message(message),
             "error": _cancellation_message(error),
+            "payment_error": payment_error,
         },
     )
 
