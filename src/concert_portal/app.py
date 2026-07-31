@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import date as date_cls
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -64,6 +65,127 @@ def validate_concert_fields(title: str, date: str, venue: str, organiser: str) -
     return errors
 
 
+# --- SCRUM-204: Ticket and booking validation ---
+
+TICKET_CATEGORY_MIN_LEN = 2
+TICKET_CATEGORY_MAX_LEN = 100
+ATTENDEE_NAME_MIN_LEN = 2
+ATTENDEE_NAME_MAX_LEN = 100
+
+
+def _parse_price(value: str | int | float) -> tuple[float | None, str | None]:
+    """Parse and validate a ticket price."""
+
+    raw_value = str(value).strip()
+
+    try:
+        parsed_price = Decimal(raw_value)
+    except InvalidOperation:
+        return None, "Enter a valid ticket price."
+
+    if not parsed_price.is_finite():
+        return None, "Enter a valid ticket price."
+
+    if parsed_price < 0:
+        return None, "Ticket price cannot be negative."
+
+    return float(parsed_price), None
+
+
+def _parse_whole_quantity(
+    value: str | int | float,
+    *,
+    field_label: str,
+) -> tuple[int | None, str | None]:
+    """Parse a strictly positive whole-number quantity."""
+
+    raw_value = str(value).strip()
+
+    if not raw_value:
+        return None, f"{field_label} is required."
+
+    try:
+        parsed_quantity = Decimal(raw_value)
+    except InvalidOperation:
+        return None, f"{field_label} must be a whole number."
+
+    if not parsed_quantity.is_finite():
+        return None, f"{field_label} must be a whole number."
+
+    if parsed_quantity != parsed_quantity.to_integral_value():
+        return None, f"{field_label} must be a whole number."
+
+    quantity = int(parsed_quantity)
+
+    if quantity <= 0:
+        return None, f"{field_label} must be at least 1."
+
+    return quantity, None
+
+
+def validate_ticket_fields(
+    category: str,
+    price: str | int | float,
+    quantity: str | int | float,
+) -> tuple[dict[str, str], str, float | None, int | None]:
+    """Validate and clean ticket-category fields."""
+
+    errors: dict[str, str] = {}
+    cleaned_category = category.strip()
+
+    if not cleaned_category:
+        errors["category"] = "Ticket category cannot be blank."
+    elif len(cleaned_category) < TICKET_CATEGORY_MIN_LEN:
+        errors["category"] = (
+            f"Ticket category must be at least {TICKET_CATEGORY_MIN_LEN} characters."
+        )
+    elif len(cleaned_category) > TICKET_CATEGORY_MAX_LEN:
+        errors["category"] = f"Ticket category must be under {TICKET_CATEGORY_MAX_LEN} characters."
+
+    parsed_price, price_error = _parse_price(price)
+    if price_error is not None:
+        errors["price"] = price_error
+
+    parsed_quantity, quantity_error = _parse_whole_quantity(
+        quantity,
+        field_label="Ticket quantity",
+    )
+    if quantity_error is not None:
+        errors["quantity"] = quantity_error
+
+    return errors, cleaned_category, parsed_price, parsed_quantity
+
+
+def validate_booking_fields(
+    attendee: str,
+    quantity: str | int | float,
+    remaining: int,
+) -> tuple[dict[str, str], str, int | None]:
+    """Validate attendee name, booking quantity, and ticket availability."""
+
+    errors: dict[str, str] = {}
+    cleaned_attendee = attendee.strip()
+
+    if not cleaned_attendee:
+        errors["attendee"] = "Attendee name cannot be blank."
+    elif len(cleaned_attendee) < ATTENDEE_NAME_MIN_LEN:
+        errors["attendee"] = f"Attendee name must be at least {ATTENDEE_NAME_MIN_LEN} characters."
+    elif len(cleaned_attendee) > ATTENDEE_NAME_MAX_LEN:
+        errors["attendee"] = f"Attendee name must be under {ATTENDEE_NAME_MAX_LEN} characters."
+
+    parsed_quantity, quantity_error = _parse_whole_quantity(
+        quantity,
+        field_label="Booking quantity",
+    )
+
+    if quantity_error is not None:
+        errors["quantity"] = quantity_error
+    elif parsed_quantity is not None and parsed_quantity > remaining:
+        errors["quantity"] = f"Only {remaining} ticket(s) remaining."
+
+    return errors, cleaned_attendee, parsed_quantity
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Create database tables on startup."""
@@ -85,6 +207,8 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), na
 BOOKING_ERROR_CODES = {400: "bad_quantity", 404: "not_found", 409: "oversold"}
 BOOKING_ERROR_MESSAGES = {
     "bad_quantity": "Quantity must be at least 1.",
+    "blank_attendee": "Attendee name cannot be blank.",
+    "invalid_attendee": "Enter a valid attendee name.",
     "not_found": "That ticket could not be found.",
     "oversold": "Not enough tickets left for that quantity.",
     "concert_missing": "That concert could not be found.",
@@ -185,12 +309,31 @@ def create_ticket(
     data: TicketCreate,
     session: Session = Depends(get_session),
 ) -> Ticket:
-    """US15/16/17 — Organiser creates a ticket category with price and quantity."""
+    """US15/16/17 — Create a validated ticket category."""
+
     concert = session.get(Concert, data.concert_id)
     if concert is None:
         raise HTTPException(status_code=404, detail="Concert not found")
 
-    ticket = Ticket(**data.model_dump())
+    errors, category, price, quantity = validate_ticket_fields(
+        data.category,
+        data.price,
+        data.quantity,
+    )
+
+    if errors:
+        raise HTTPException(status_code=422, detail=errors)
+
+    if price is None or quantity is None:
+        raise HTTPException(status_code=422, detail="Invalid ticket data")
+
+    ticket = Ticket(
+        concert_id=data.concert_id,
+        category=category,
+        price=price,
+        quantity=quantity,
+    )
+
     session.add(ticket)
     session.commit()
     session.refresh(ticket)
@@ -213,30 +356,80 @@ def ticket_new_form(
     request: Request,
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
-    """US15/16/17 — Show the add-ticket-category form for a concert."""
+    """Show the add-ticket-category form for a concert."""
+
     concert = session.get(Concert, concert_id)
     if concert is None:
         raise HTTPException(status_code=404, detail="Concert not found")
-    return templates.TemplateResponse(request, "ticket_new.html", {"concert": concert})
+
+    return templates.TemplateResponse(
+        request,
+        "ticket_new.html",
+        {
+            "concert": concert,
+            "errors": {},
+            "values": {},
+        },
+    )
 
 
-@app.post("/concerts/{concert_id}/tickets/new")
+@app.post("/concerts/{concert_id}/tickets/new", response_model=None)
 def ticket_new_submit(
     concert_id: int,
+    request: Request,
     category: str = Form(...),
-    price: float = Form(...),
-    quantity: int = Form(...),
+    price: str = Form(...),
+    quantity: str = Form(...),
     session: Session = Depends(get_session),
-) -> RedirectResponse:
-    """Handle the HTML ticket form, reusing the same rules as the JSON API."""
-    try:
-        create_ticket(
-            TicketCreate(concert_id=concert_id, category=category, price=price, quantity=quantity),
-            session,
+) -> RedirectResponse | HTMLResponse:
+    """Validate and process the HTML ticket form."""
+
+    concert = session.get(Concert, concert_id)
+    if concert is None:
+        return RedirectResponse(
+            url="/?error=concert_missing",
+            status_code=303,
         )
-    except HTTPException:
-        return RedirectResponse(url="/?error=concert_missing", status_code=303)
-    return RedirectResponse(url=f"/concerts/{concert_id}", status_code=303)
+
+    errors, cleaned_category, parsed_price, parsed_quantity = validate_ticket_fields(
+        category,
+        price,
+        quantity,
+    )
+
+    if errors:
+        return templates.TemplateResponse(
+            request,
+            "ticket_new.html",
+            {
+                "concert": concert,
+                "errors": errors,
+                "values": {
+                    "category": category,
+                    "price": price,
+                    "quantity": quantity,
+                },
+            },
+            status_code=422,
+        )
+
+    if parsed_price is None or parsed_quantity is None:
+        raise HTTPException(status_code=422, detail="Invalid ticket data")
+
+    ticket = Ticket(
+        concert_id=concert_id,
+        category=cleaned_category,
+        price=parsed_price,
+        quantity=parsed_quantity,
+    )
+
+    session.add(ticket)
+    session.commit()
+
+    return RedirectResponse(
+        url=f"/concerts/{concert_id}",
+        status_code=303,
+    )
 
 
 @app.post("/bookings", response_model=BookingRead, status_code=201)
@@ -244,36 +437,84 @@ def create_booking(
     data: BookingCreate,
     session: Session = Depends(get_session),
 ) -> Booking:
-    """US20/21/19 — Attendee selects tickets and creates a booking.
+    """Create a validated booking while preventing overselling."""
 
-    Rejects requests for a non-existent ticket, a non-positive quantity,
-    or more tickets than remain available (prevents overselling).
-    """
-    # US20 — the selected ticket must exist
     ticket = session.get(Ticket, data.ticket_id)
+
     if ticket is None:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-
-    # US20 — quantity must be sensible
-    if data.quantity <= 0:
-        raise HTTPException(status_code=400, detail="Quantity must be at least 1")
-
-    # US19 — prevent overselling
-    remaining = ticket.quantity - ticket.sold
-    if data.quantity > remaining:
         raise HTTPException(
-            status_code=409,
-            detail=f"Only {remaining} ticket(s) remaining",
+            status_code=404,
+            detail="Ticket not found",
         )
 
-    # US21 — record the booking and reserve the tickets in one transaction
-    booking = Booking(**data.model_dump())
-    ticket.sold += data.quantity
+    remaining = max(ticket.quantity - ticket.sold, 0)
+
+    errors, attendee, quantity = validate_booking_fields(
+        data.attendee,
+        data.quantity,
+        remaining,
+    )
+
+    if errors:
+        quantity_error = errors.get("quantity", "")
+        attendee_error = errors.get("attendee", "")
+
+        if "remaining" in quantity_error:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "quantity": quantity_error,
+                    "remaining": remaining,
+                },
+            )
+
+        if "at least 1" in quantity_error:
+            raise HTTPException(
+                status_code=400,
+                detail={"quantity": quantity_error},
+            )
+
+        if attendee_error:
+            raise HTTPException(
+                status_code=422,
+                detail={"attendee": attendee_error},
+            )
+
+        raise HTTPException(
+            status_code=422,
+            detail=errors,
+        )
+
+    if quantity is None:
+        raise HTTPException(
+            status_code=422,
+            detail={"quantity": "Invalid booking quantity"},
+        )
+
+    new_sold_quantity = ticket.sold + quantity
+
+    if new_sold_quantity > ticket.quantity:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "quantity": "Not enough tickets remaining.",
+                "remaining": remaining,
+            },
+        )
+
+    booking = Booking(
+        ticket_id=data.ticket_id,
+        attendee=attendee,
+        quantity=quantity,
+    )
+
+    ticket.sold = new_sold_quantity
 
     session.add(booking)
     session.add(ticket)
     session.commit()
     session.refresh(booking)
+
     return booking
 
 
@@ -304,30 +545,72 @@ def concert_detail_page(
 def booking_new_submit(
     ticket_id: int = Form(...),
     attendee: str = Form(...),
-    quantity: int = Form(...),
+    quantity: str = Form(...),
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
-    """Handle the booking form, reusing the same rules as the API.
+    """Validate and process the HTML booking form."""
 
-    On failure, redirects back to an HTML page with a short ?error= code
-    instead of letting the underlying HTTPException reach the browser as a
-    raw JSON body — the JSON /bookings endpoint's own error responses are
-    untouched.
-    """
+    ticket = session.get(Ticket, ticket_id)
+
+    if ticket is None:
+        return RedirectResponse(
+            url="/?error=not_found",
+            status_code=303,
+        )
+
+    remaining = max(ticket.quantity - ticket.sold, 0)
+
+    errors, cleaned_attendee, parsed_quantity = validate_booking_fields(
+        attendee,
+        quantity,
+        remaining,
+    )
+
+    if errors:
+        if "attendee" in errors:
+            attendee_error = errors["attendee"]
+
+            if "blank" in attendee_error:
+                error_code = "blank_attendee"
+            else:
+                error_code = "invalid_attendee"
+        elif "remaining" in errors.get("quantity", ""):
+            error_code = "oversold"
+        else:
+            error_code = "bad_quantity"
+
+        return RedirectResponse(
+            url=f"/concerts/{ticket.concert_id}?error={error_code}",
+            status_code=303,
+        )
+
+    if parsed_quantity is None:
+        return RedirectResponse(
+            url=f"/concerts/{ticket.concert_id}?error=bad_quantity",
+            status_code=303,
+        )
+
     try:
         booking = create_booking(
-            BookingCreate(ticket_id=ticket_id, attendee=attendee, quantity=quantity),
+            BookingCreate(
+                ticket_id=ticket_id,
+                attendee=cleaned_attendee,
+                quantity=parsed_quantity,
+            ),
             session,
         )
     except HTTPException as exc:
-        error_code = BOOKING_ERROR_CODES.get(exc.status_code, "unknown")
-        ticket = session.get(Ticket, ticket_id)
-        if ticket is None:
-            return RedirectResponse(url=f"/?error={error_code}", status_code=303)
+        error_code = BOOKING_ERROR_CODES.get(exc.status_code, "bad_quantity")
+
         return RedirectResponse(
-            url=f"/concerts/{ticket.concert_id}?error={error_code}", status_code=303
+            url=f"/concerts/{ticket.concert_id}?error={error_code}",
+            status_code=303,
         )
-    return RedirectResponse(url=f"/bookings/{booking.id}", status_code=303)
+
+    return RedirectResponse(
+        url=f"/bookings/{booking.id}",
+        status_code=303,
+    )
 
 
 @app.get("/bookings/{booking_id}", response_class=HTMLResponse)
@@ -361,7 +644,7 @@ def upload_payment_proof(
     if booking is None:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    UPLOAD_DIR.mkdir(exist_ok=True)
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     filename = f"booking_{booking_id}_{file.filename}"
     (UPLOAD_DIR / filename).write_bytes(file.file.read())
 

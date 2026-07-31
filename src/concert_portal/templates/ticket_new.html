@@ -1,19 +1,55 @@
 {% extends "base.html" %}
-{% block title %}Add Tickets — {{ concert.title }}{% endblock %}
+
+{% block title %}Add Ticket Category{% endblock %}
+
 {% block content %}
 <h1>Add Ticket Category</h1>
+<p class="muted">{{ concert.title }}</p>
 
-<form class="surface form-card" action="/concerts/{{ concert.id }}/tickets/new" method="post">
-  <p>For <strong>{{ concert.title }}</strong> — {{ concert.date }}, {{ concert.venue }}</p>
+<form
+  class="surface form-card"
+  action="/concerts/{{ concert.id }}/tickets/new"
+  method="post"
+>
+  <label for="category">Ticket category</label>
+  <input
+    id="category"
+    name="category"
+    value="{{ values.category or '' }}"
+    maxlength="100"
+    required
+  >
+  {% if errors.category %}
+    <p class="field-error">{{ errors.category }}</p>
+  {% endif %}
 
-  <label>Category</label>
-  <input name="category" placeholder="e.g. VIP, Standard" required>
+  <label for="price">Price (RM)</label>
+  <input
+    id="price"
+    name="price"
+    type="number"
+    min="0"
+    step="0.01"
+    value="{{ values.price or '' }}"
+    required
+  >
+  {% if errors.price %}
+    <p class="field-error">{{ errors.price }}</p>
+  {% endif %}
 
-  <label>Price (RM)</label>
-  <input name="price" type="number" min="0" step="0.01" required>
-
-  <label>Quantity</label>
-  <input name="quantity" type="number" min="1" value="1" required>
+  <label for="quantity">Ticket quantity</label>
+  <input
+    id="quantity"
+    name="quantity"
+    type="number"
+    min="1"
+    step="1"
+    value="{{ values.quantity or '' }}"
+    required
+  >
+  {% if errors.quantity %}
+    <p class="field-error">{{ errors.quantity }}</p>
+  {% endif %}
 
   <button type="submit">Add ticket category</button>
 </form>
