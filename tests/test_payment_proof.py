@@ -9,7 +9,7 @@ def _create_booking(client: TestClient) -> int:
         "/concerts",
         json={
             "title": "Rock Night",
-            "date": "2026-08-01",
+            "date": "2099-08-01",
             "venue": "National Stadium",
             "organiser": "organiser1",
         },

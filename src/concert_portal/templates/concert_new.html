@@ -1,16 +1,74 @@
 {% extends "base.html" %}
+
 {% block title %}Create Concert{% endblock %}
+
 {% block content %}
 <h1>Create Concert</h1>
-<form class="surface form-card" action="/concerts/new" method="post">
-  <label>Title</label>
-  <input name="title" required>
-  <label>Date</label>
-  <input name="date" type="date" required>
-  <label>Venue</label>
-  <input name="venue" required>
-  <label>Organiser</label>
-  <input name="organiser" required>
+
+<form
+  class="surface form-card"
+  action="/concerts/new"
+  method="post"
+  novalidate
+>
+  <label for="title">Title</label>
+  <input
+    id="title"
+    name="title"
+    type="text"
+    value="{{ form.title }}"
+    minlength="3"
+    maxlength="100"
+    required
+    {% if errors.title %}aria-invalid="true"{% endif %}
+  >
+  {% if errors.title %}
+    <p class="field-error">{{ errors.title }}</p>
+  {% endif %}
+
+  <label for="date">Date</label>
+  <input
+    id="date"
+    name="date"
+    type="date"
+    value="{{ form.date }}"
+    required
+    {% if errors.date %}aria-invalid="true"{% endif %}
+  >
+  {% if errors.date %}
+    <p class="field-error">{{ errors.date }}</p>
+  {% endif %}
+
+  <label for="venue">Venue</label>
+  <input
+    id="venue"
+    name="venue"
+    type="text"
+    value="{{ form.venue }}"
+    minlength="2"
+    maxlength="100"
+    required
+    {% if errors.venue %}aria-invalid="true"{% endif %}
+  >
+  {% if errors.venue %}
+    <p class="field-error">{{ errors.venue }}</p>
+  {% endif %}
+
+  <label for="organiser">Organiser</label>
+  <input
+    id="organiser"
+    name="organiser"
+    type="text"
+    value="{{ form.organiser }}"
+    minlength="2"
+    maxlength="100"
+    required
+    {% if errors.organiser %}aria-invalid="true"{% endif %}
+  >
+  {% if errors.organiser %}
+    <p class="field-error">{{ errors.organiser }}</p>
+  {% endif %}
+
   <button type="submit">Create concert</button>
 </form>
 {% endblock %}

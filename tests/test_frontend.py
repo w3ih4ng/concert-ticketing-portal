@@ -17,7 +17,7 @@ def test_create_concert_via_form(client: TestClient) -> None:
         "/concerts/new",
         data={
             "title": "Jazz Evening",
-            "date": "2026-09-15",
+            "date": "2099-09-15",
             "venue": "City Hall",
             "organiser": "organiser1",
         },

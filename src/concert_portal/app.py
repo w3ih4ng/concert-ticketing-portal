@@ -2,7 +2,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -21,6 +21,7 @@ from concert_portal.models import (
     TicketRead,
     PaymentProof,
 )
+from concert_portal.validation import validate_concert_input
 
 
 @asynccontextmanager
@@ -69,8 +70,25 @@ def create_concert(
     data: ConcertCreate,
     session: Session = Depends(get_session),
 ) -> Concert:
-    """US07 — Organiser creates a concert event."""
-    concert = Concert(**data.model_dump())
+    """US07 — Organiser creates a validated concert event."""
+
+    validated, errors = validate_concert_input(
+        title=data.title,
+        date_value=data.date,
+        venue=data.venue,
+        organiser=data.organiser,
+    )
+
+    if errors:
+        raise HTTPException(status_code=422, detail=errors)
+
+    concert = Concert(
+        title=validated.title,
+        date=validated.date,
+        venue=validated.venue,
+        organiser=validated.organiser,
+    )
+
     session.add(concert)
     session.commit()
     session.refresh(concert)
@@ -96,23 +114,71 @@ def concerts_page(
 @app.get("/concerts/new", response_class=HTMLResponse)
 def concert_new_form(request: Request) -> HTMLResponse:
     """Show the create-concert form."""
-    return templates.TemplateResponse(request, "concert_new.html", {})
+
+    return templates.TemplateResponse(
+        request,
+        "concert_new.html",
+        {
+            "errors": {},
+            "form": {
+                "title": "",
+                "date": "",
+                "venue": "",
+                "organiser": "",
+            },
+        },
+    )
 
 
-@app.post("/concerts/new")
+@app.post("/concerts/new", response_class=HTMLResponse)
 def concert_new_submit(
+    request: Request,
     title: str = Form(...),
     date: str = Form(...),
     venue: str = Form(...),
     organiser: str = Form(...),
     session: Session = Depends(get_session),
-) -> RedirectResponse:
-    """Handle the HTML form submission, then redirect to the list."""
-    concert = Concert(title=title, date=date, venue=venue, organiser=organiser)
+) -> Response:
+    """Validate and process the HTML concert creation form."""
+
+    validated, errors = validate_concert_input(
+        title=title,
+        date_value=date,
+        venue=venue,
+        organiser=organiser,
+    )
+
+    if errors:
+        return templates.TemplateResponse(
+            request,
+            "concert_new.html",
+            {
+                "errors": errors,
+                "form": {
+                    "title": validated.title,
+                    "date": validated.date,
+                    "venue": validated.venue,
+                    "organiser": validated.organiser,
+                },
+            },
+            status_code=422,
+        )
+
+    concert = Concert(
+        title=validated.title,
+        date=validated.date,
+        venue=validated.venue,
+        organiser=validated.organiser,
+    )
+
     session.add(concert)
     session.commit()
     session.refresh(concert)
-    return RedirectResponse(url=f"/concerts/{concert.id}", status_code=303)
+
+    return RedirectResponse(
+        url=f"/concerts/{concert.id}",
+        status_code=303,
+    )
 
 
 @app.post("/tickets", response_model=TicketRead, status_code=201)

@@ -495,3 +495,21 @@ a:focus-visible {
     bottom: -8px;
   }
 }
+
+/* ---------- Field validation ---------- */
+
+.field-error {
+  margin: 0.35rem 0 0.75rem;
+  color: var(--marquee-dark);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+input[aria-invalid="true"] {
+  border-color: var(--marquee-dark);
+}
+
+input[aria-invalid="true"]:focus {
+  border-color: var(--marquee-dark);
+  outline-color: var(--marquee);
+}
