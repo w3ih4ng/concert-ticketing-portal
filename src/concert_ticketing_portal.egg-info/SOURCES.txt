@@ -11,6 +11,7 @@ src/concert_ticketing_portal.egg-info/requires.txt
 src/concert_ticketing_portal.egg-info/top_level.txt
 tests/test_booking_form.py
 tests/test_bookings.py
+tests/test_concert_validation.py
 tests/test_concerts.py
 tests/test_frontend.py
 tests/test_health.py

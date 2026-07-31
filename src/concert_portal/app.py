@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import date as date_cls
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -16,11 +17,51 @@ from concert_portal.models import (
     Concert,
     ConcertCreate,
     ConcertRead,
+    PaymentProof,
     Ticket,
     TicketCreate,
     TicketRead,
-    PaymentProof,
 )
+
+# --- SCRUM-203: Concert field validation (shared by the API and the HTML form) ---
+CONCERT_TEXT_FIELDS = ("title", "venue", "organiser")
+CONCERT_TEXT_MIN_LEN = 2
+CONCERT_TEXT_MAX_LEN = 200
+
+
+def validate_concert_fields(title: str, date: str, venue: str, organiser: str) -> dict[str, str]:
+    """
+    Validate organiser-submitted concert fields.
+
+    Returns a dict of field name -> error message. An empty dict means the
+    input is valid. Used by both the JSON API and the HTML form so the two
+    paths can never enforce different rules.
+    """
+    errors: dict[str, str] = {}
+    values = {"title": title, "venue": venue, "organiser": organiser}
+
+    for field_name in CONCERT_TEXT_FIELDS:
+        trimmed = values[field_name].strip()
+        if not trimmed:
+            errors[field_name] = f"{field_name.capitalize()} cannot be blank."
+        elif len(trimmed) < CONCERT_TEXT_MIN_LEN:
+            errors[field_name] = (
+                f"{field_name.capitalize()} must be at least {CONCERT_TEXT_MIN_LEN} characters."
+            )
+        elif len(trimmed) > CONCERT_TEXT_MAX_LEN:
+            errors[field_name] = (
+                f"{field_name.capitalize()} must be under {CONCERT_TEXT_MAX_LEN} characters."
+            )
+
+    try:
+        parsed_date = date_cls.fromisoformat(date.strip())
+    except ValueError:
+        errors["date"] = "Enter a valid date (YYYY-MM-DD)."
+    else:
+        if parsed_date < date_cls.today():
+            errors["date"] = "Date cannot be in the past."
+
+    return errors
 
 
 @asynccontextmanager
@@ -70,7 +111,15 @@ def create_concert(
     session: Session = Depends(get_session),
 ) -> Concert:
     """US07 — Organiser creates a concert event."""
-    concert = Concert(**data.model_dump())
+    errors = validate_concert_fields(data.title, data.date, data.venue, data.organiser)
+    if errors:
+        raise HTTPException(status_code=422, detail=errors)
+    concert = Concert(
+        title=data.title.strip(),
+        date=data.date.strip(),
+        venue=data.venue.strip(),
+        organiser=data.organiser.strip(),
+    )
     session.add(concert)
     session.commit()
     session.refresh(concert)
@@ -96,19 +145,35 @@ def concerts_page(
 @app.get("/concerts/new", response_class=HTMLResponse)
 def concert_new_form(request: Request) -> HTMLResponse:
     """Show the create-concert form."""
-    return templates.TemplateResponse(request, "concert_new.html", {})
+    return templates.TemplateResponse(request, "concert_new.html", {"errors": {}, "values": {}})
 
 
-@app.post("/concerts/new")
+@app.post("/concerts/new", response_model=None)
 def concert_new_submit(
+    request: Request,
     title: str = Form(...),
     date: str = Form(...),
     venue: str = Form(...),
     organiser: str = Form(...),
     session: Session = Depends(get_session),
-) -> RedirectResponse:
-    """Handle the HTML form submission, then redirect to the list."""
-    concert = Concert(title=title, date=date, venue=venue, organiser=organiser)
+) -> RedirectResponse | HTMLResponse:
+    """Handle the HTML form submission. Re-shows the form with field-specific
+    errors and the entered values preserved if validation fails; otherwise
+    redirects to the new concert's page."""
+    errors = validate_concert_fields(title, date, venue, organiser)
+    if errors:
+        return templates.TemplateResponse(
+            request,
+            "concert_new.html",
+            {
+                "errors": errors,
+                "values": {"title": title, "date": date, "venue": venue, "organiser": organiser},
+            },
+            status_code=422,
+        )
+    concert = Concert(
+        title=title.strip(), date=date.strip(), venue=venue.strip(), organiser=organiser.strip()
+    )
     session.add(concert)
     session.commit()
     session.refresh(concert)
