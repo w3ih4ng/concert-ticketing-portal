@@ -642,3 +642,68 @@ textarea:focus-visible {
 .logout-button:hover {
   text-decoration: underline;
 }
+
+/* ---------- Booking history ---------- */
+
+.history-header {
+  margin-bottom: 1.5rem;
+}
+
+.history-list {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.booking-history-card {
+  padding: 1.4rem;
+}
+
+.booking-history-main {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.booking-history-main h2 {
+  margin: 0.2rem 0;
+}
+
+.booking-reference {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.booking-history-details {
+  display: grid;
+  gap: 0.45rem 1rem;
+  grid-template-columns: max-content 1fr;
+  margin: 1.2rem 0;
+}
+
+.booking-history-details dt {
+  font-weight: 800;
+}
+
+.booking-history-details dd {
+  margin: 0;
+}
+
+.booking-history-action {
+  margin: 1.2rem 0 0;
+}
+
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .booking-history-main {
+    flex-direction: column;
+  }
+}

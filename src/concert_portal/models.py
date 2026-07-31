@@ -142,6 +142,11 @@ class Booking(BookingBase, table=True):
     """Database table."""
 
     id: int | None = Field(default=None, primary_key=True)
+    user_id: int | None = Field(
+        default=None,
+        foreign_key="user.id",
+        index=True,
+    )
     status: str = Field(default="pending_payment")
 
 

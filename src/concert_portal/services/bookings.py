@@ -1,11 +1,27 @@
-from fastapi import HTTPException
-from sqlmodel import Session
+from dataclasses import dataclass
 
-from concert_portal.models import Booking, BookingCreate, Ticket
+from fastapi import HTTPException
+from sqlmodel import Session, col, select
+
+from concert_portal.models import Booking, BookingCreate, Concert, Ticket
 from concert_portal.validation import validate_booking_fields
 
 
-def create_booking_record(data: BookingCreate, session: Session) -> Booking:
+@dataclass(frozen=True)
+class BookingHistoryItem:
+    """Booking information displayed on the attendee history page."""
+
+    booking: Booking
+    ticket: Ticket
+    concert: Concert
+
+
+def create_booking_record(
+    data: BookingCreate,
+    session: Session,
+    *,
+    user_id: int | None = None,
+) -> Booking:
     """Create a validated booking while preventing overselling."""
 
     ticket = session.get(Ticket, data.ticket_id)
@@ -75,6 +91,7 @@ def create_booking_record(data: BookingCreate, session: Session) -> Booking:
         ticket_id=data.ticket_id,
         attendee=attendee,
         quantity=quantity,
+        user_id=user_id,
     )
 
     ticket.sold = new_sold_quantity
@@ -87,7 +104,44 @@ def create_booking_record(data: BookingCreate, session: Session) -> Booking:
     return booking
 
 
-def cancel_booking_record(booking_id: int, session: Session) -> Booking:
+def get_attendee_booking_history(
+    user_id: int,
+    session: Session,
+) -> list[BookingHistoryItem]:
+    """Retrieve bookings belonging to one attendee account."""
+
+    bookings = session.exec(
+        select(Booking).where(Booking.user_id == user_id).order_by(col(Booking.id).desc())
+    ).all()
+
+    history: list[BookingHistoryItem] = []
+
+    for booking in bookings:
+        ticket = session.get(Ticket, booking.ticket_id)
+
+        if ticket is None:
+            continue
+
+        concert = session.get(Concert, ticket.concert_id)
+
+        if concert is None:
+            continue
+
+        history.append(
+            BookingHistoryItem(
+                booking=booking,
+                ticket=ticket,
+                concert=concert,
+            )
+        )
+
+    return history
+
+
+def cancel_booking_record(
+    booking_id: int,
+    session: Session,
+) -> Booking:
     """Cancel a pending booking and restore its reserved ticket quantity."""
 
     booking = session.get(Booking, booking_id)
@@ -107,7 +161,7 @@ def cancel_booking_record(booking_id: int, session: Session) -> Booking:
     if booking.status != "pending_payment":
         raise HTTPException(
             status_code=409,
-            detail="Only bookings that are still pending payment can be cancelled.",
+            detail=("Only bookings that are still pending payment " "can be cancelled."),
         )
 
     ticket = session.get(Ticket, booking.ticket_id)
