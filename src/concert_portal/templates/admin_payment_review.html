@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Verification{% endblock %}
+
+{% block content %}
+<section class="history-header">
+  <p class="eyebrow">Admin portal</p>
+  <h1>Payment Verification</h1>
+
+  <p class="muted">
+    Review uploaded payment proofs before confirming bookings.
+  </p>
+</section>
+
+{% if message %}
+<div class="banner banner-success surface" role="status">
+  {{ message }}
+</div>
+{% endif %}
+
+{% if error %}
+<div class="banner banner-error surface" role="alert">
+  {{ error }}
+</div>
+{% endif %}
+
+{% if review_items %}
+<div class="payment-review-list">
+  {% for item in review_items %}
+  <article class="surface payment-review-card">
+    <div class="payment-review-heading">
+      <div>
+        <p class="booking-reference">
+          Booking #{{ item.booking.id }}
+        </p>
+
+        <h2>{{ item.concert.title }}</h2>
+
+        <p class="muted">
+          {{ item.concert.date }} · {{ item.concert.venue }}
+        </p>
+      </div>
+
+      <span class="badge badge-status">
+        {{ item.booking.status | replace("_", " ") | title }}
+      </span>
+    </div>
+
+    <dl class="booking-history-details">
+      <dt>Attendee</dt>
+      <dd>{{ item.booking.attendee }}</dd>
+
+      <dt>Ticket</dt>
+      <dd>{{ item.ticket.category }}</dd>
+
+      <dt>Quantity</dt>
+      <dd>{{ item.booking.quantity }}</dd>
+
+      <dt>Total</dt>
+      <dd>
+        RM {{
+          "%.2f"|format(
+            item.ticket.price * item.booking.quantity
+          )
+        }}
+      </dd>
+
+      <dt>Stored proof</dt>
+      <dd>{{ item.proof.filename }}</dd>
+    </dl>
+
+    <div class="payment-proof-preview">
+      {% set extension =
+        item.proof.filename.rsplit(".", 1)[-1] | lower
+      %}
+
+      {% if extension == "pdf" %}
+      <iframe
+        src="/admin/payment-proofs/{{ item.proof.id }}/file"
+        title="Payment proof for booking {{ item.booking.id }}"
+      ></iframe>
+      {% else %}
+      <img
+        src="/admin/payment-proofs/{{ item.proof.id }}/file"
+        alt="Payment proof for booking {{ item.booking.id }}"
+      >
+      {% endif %}
+    </div>
+
+    {% if item.booking.status == "payment_uploaded" %}
+    <div class="payment-review-actions">
+      <form
+        action="/admin/payment-proofs/{{ item.proof.id }}/approve"
+        method="post"
+        onsubmit="return confirm('Approve this payment proof?');"
+      >
+        <button type="submit">
+          Approve payment
+        </button>
+      </form>
+
+      <form
+        action="/admin/payment-proofs/{{ item.proof.id }}/reject"
+        method="post"
+        onsubmit="return confirm('Reject this payment proof and allow a replacement upload?');"
+      >
+        <button class="btn-danger" type="submit">
+          Reject payment
+        </button>
+      </form>
+    </div>
+    {% else %}
+    <p class="muted">
+      This payment has already been processed.
+    </p>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="surface empty-state">
+  <h2>No payment proofs waiting</h2>
+
+  <p>
+    Uploaded payment proofs will appear here for review.
+  </p>
+</div>
+{% endif %}
+{% endblock %}
