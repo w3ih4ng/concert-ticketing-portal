@@ -33,6 +33,44 @@ class UserRead(UserBase):
     id: int
 
 
+class OrganiserProfile(SQLModel, table=True):
+    """Organisation details submitted by an organiser."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True, unique=True)
+    organisation_name: str
+    registration_number: str
+    organisation_address: str
+    status: str = "pending"
+
+
+class OrganiserCreate(SQLModel):
+    """Data required to submit an organiser-registration request."""
+
+    name: str
+    email: str
+    phone: str
+    password: str
+    organisation_name: str
+    registration_number: str
+    organisation_address: str
+
+
+class OrganiserRead(SQLModel):
+    """Safe organiser-registration information returned by the API."""
+
+    id: int
+    user_id: int
+    name: str
+    email: str
+    phone: str
+    role: str
+    organisation_name: str
+    registration_number: str
+    organisation_address: str
+    status: str
+
+
 class ConcertBase(SQLModel):
     title: str
     date: str
