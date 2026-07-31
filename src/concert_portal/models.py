@@ -33,6 +33,19 @@ class UserRead(UserBase):
     id: int
 
 
+class LoginRequest(SQLModel):
+    """Credentials submitted through the login API."""
+
+    email: str
+    password: str
+
+
+class LoginResponse(UserRead):
+    """Safe information returned after successful login."""
+
+    redirect_url: str
+
+
 class OrganiserProfile(SQLModel, table=True):
     """Organisation details submitted by an organiser."""
 

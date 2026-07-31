@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<section class="auth-shell">
+  <div class="surface form-card auth-card">
+    <p class="eyebrow">Welcome back</p>
+    <h1>Login</h1>
+
+    <p class="muted">
+      Sign in using your registered email address and password.
+    </p>
+
+    {% if error %}
+    <div class="banner banner-error" role="alert">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <form action="/login" method="post" novalidate>
+      <label for="email">Email address</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        value="{{ email or '' }}"
+        maxlength="254"
+        autocomplete="email"
+        aria-invalid="{{ 'true' if error else 'false' }}"
+        required
+      >
+
+      <label for="password">Password</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        maxlength="128"
+        autocomplete="current-password"
+        aria-invalid="{{ 'true' if error else 'false' }}"
+        required
+      >
+
+      <button type="submit">Login</button>
+    </form>
+
+    <p class="auth-links">
+      New attendee?
+      <a href="/register/attendee">Create an attendee account</a>
+    </p>
+
+    <p class="auth-links">
+      Hosting concerts?
+      <a href="/register/organiser">Register as an organiser</a>
+    </p>
+  </div>
+</section>
+{% endblock %}
