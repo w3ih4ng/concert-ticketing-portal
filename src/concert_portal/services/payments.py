@@ -1,10 +1,17 @@
+from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
 
 from fastapi import HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
-from concert_portal.models import Booking, PaymentProof
+from concert_portal.models import (
+    Booking,
+    Concert,
+    PaymentProof,
+    Ticket,
+)
+from concert_portal.web import UPLOAD_DIR
 
 MAX_PAYMENT_PROOF_SIZE = 5 * 1024 * 1024
 
@@ -14,6 +21,16 @@ ALLOWED_PAYMENT_PROOF_TYPES = {
     ".png": {"image/png"},
     ".pdf": {"application/pdf"},
 }
+
+
+@dataclass(frozen=True)
+class PaymentReviewItem:
+    """Information displayed on the admin payment review page."""
+
+    proof: PaymentProof
+    booking: Booking
+    ticket: Ticket
+    concert: Concert
 
 
 def get_booking_for_payment_upload(
@@ -160,3 +177,194 @@ def save_payment_proof_record(
     session.refresh(proof)
 
     return proof
+
+
+def get_payment_review_items(
+    session: Session,
+) -> list[PaymentReviewItem]:
+    """Return all payment proofs waiting for admin review."""
+
+    proofs = session.exec(select(PaymentProof).order_by(col(PaymentProof.id).desc())).all()
+
+    review_items: list[PaymentReviewItem] = []
+
+    for proof in proofs:
+        booking = session.get(
+            Booking,
+            proof.booking_id,
+        )
+
+        if booking is None:
+            continue
+
+        ticket = session.get(
+            Ticket,
+            booking.ticket_id,
+        )
+
+        if ticket is None:
+            continue
+
+        concert = session.get(
+            Concert,
+            ticket.concert_id,
+        )
+
+        if concert is None:
+            continue
+
+        review_items.append(
+            PaymentReviewItem(
+                proof=proof,
+                booking=booking,
+                ticket=ticket,
+                concert=concert,
+            )
+        )
+
+    return review_items
+
+
+def get_payment_review_item(
+    proof_id: int,
+    session: Session,
+) -> PaymentReviewItem:
+    """Retrieve one payment proof and its related booking details."""
+
+    proof = session.get(
+        PaymentProof,
+        proof_id,
+    )
+
+    if proof is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Payment proof not found.",
+        )
+
+    booking = session.get(
+        Booking,
+        proof.booking_id,
+    )
+
+    if booking is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Booking not found.",
+        )
+
+    ticket = session.get(
+        Ticket,
+        booking.ticket_id,
+    )
+
+    if ticket is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Ticket not found.",
+        )
+
+    concert = session.get(
+        Concert,
+        ticket.concert_id,
+    )
+
+    if concert is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert not found.",
+        )
+
+    return PaymentReviewItem(
+        proof=proof,
+        booking=booking,
+        ticket=ticket,
+        concert=concert,
+    )
+
+
+def get_payment_proof_path(
+    proof: PaymentProof,
+) -> Path:
+    """Resolve a stored proof path without allowing path traversal."""
+
+    stored_path = (UPLOAD_DIR / Path(proof.filename).name).resolve()
+
+    upload_root = UPLOAD_DIR.resolve()
+
+    if stored_path.parent != upload_root:
+        raise HTTPException(
+            status_code=404,
+            detail="Payment proof file not found.",
+        )
+
+    if not stored_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Payment proof file not found.",
+        )
+
+    return stored_path
+
+
+def approve_payment_proof(
+    proof_id: int,
+    session: Session,
+) -> PaymentReviewItem:
+    """Approve payment proof and confirm its booking."""
+
+    item = get_payment_review_item(
+        proof_id,
+        session,
+    )
+
+    if item.booking.status == "confirmed":
+        raise HTTPException(
+            status_code=409,
+            detail="This booking has already been confirmed.",
+        )
+
+    if item.booking.status != "payment_uploaded":
+        raise HTTPException(
+            status_code=409,
+            detail=("Only uploaded payment proofs " "can be approved."),
+        )
+
+    item.booking.status = "confirmed"
+
+    session.add(item.booking)
+    session.commit()
+    session.refresh(item.booking)
+
+    return item
+
+
+def reject_payment_proof(
+    proof_id: int,
+    session: Session,
+) -> Booking:
+    """Reject proof and allow the attendee to upload another file."""
+
+    item = get_payment_review_item(
+        proof_id,
+        session,
+    )
+
+    if item.booking.status != "payment_uploaded":
+        raise HTTPException(
+            status_code=409,
+            detail=("Only uploaded payment proofs " "can be rejected."),
+        )
+
+    stored_path = UPLOAD_DIR / Path(item.proof.filename).name
+
+    item.booking.status = "pending_payment"
+
+    session.delete(item.proof)
+    session.add(item.booking)
+    session.commit()
+    session.refresh(item.booking)
+
+    stored_path.unlink(missing_ok=True)
+
+    return item.booking

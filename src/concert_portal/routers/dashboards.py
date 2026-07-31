@@ -68,15 +68,33 @@ def staff_dashboard(
     )
 
 
-@router.get("/admin/dashboard", response_class=HTMLResponse)
+@router.get(
+    "/admin/dashboard",
+    response_class=HTMLResponse,
+)
 def admin_dashboard(
     request: Request,
     session: Session = Depends(get_session),
 ) -> Response:
-    """Show the administrator dashboard."""
+    current_user = get_session_user(request, session)
 
-    return render_role_dashboard(
+    if current_user is None:
+        return RedirectResponse(
+            url="/login",
+            status_code=303,
+        )
+
+    if current_user.role != "admin":
+        return RedirectResponse(
+            url=role_redirect_url(current_user.role),
+            status_code=303,
+        )
+
+    return templates.TemplateResponse(
         request,
-        "admin",
-        session,
+        "role_dashboard.html",
+        {
+            "user": current_user,
+            "role": "admin",
+        },
     )
