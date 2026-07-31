@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Attendee Registration{% endblock %}
+
+{% block content %}
+<section class="auth-shell">
+  <div class="surface form-card auth-card">
+    <p class="eyebrow">Join the audience</p>
+    <h1>Create Attendee Account</h1>
+
+    <p class="muted">
+      Register an attendee account to book and manage concert tickets.
+    </p>
+
+    {% if registered %}
+    <div class="banner banner-success">
+      Registration successful. Your attendee account has been created.
+    </div>
+    {% endif %}
+
+    <form action="/register/attendee" method="post" novalidate>
+      <label for="name">Full name</label>
+      <input
+        id="name"
+        name="name"
+        type="text"
+        value="{{ values.name or '' }}"
+        minlength="2"
+        maxlength="100"
+        autocomplete="name"
+        aria-invalid="{{ 'true' if errors.name else 'false' }}"
+        required
+      >
+      {% if errors.name %}
+      <p class="field-error">{{ errors.name }}</p>
+      {% endif %}
+
+      <label for="email">Email address</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        value="{{ values.email or '' }}"
+        maxlength="254"
+        autocomplete="email"
+        aria-invalid="{{ 'true' if errors.email else 'false' }}"
+        required
+      >
+      {% if errors.email %}
+      <p class="field-error">{{ errors.email }}</p>
+      {% endif %}
+
+      <label for="phone">Phone number</label>
+      <input
+        id="phone"
+        name="phone"
+        type="tel"
+        value="{{ values.phone or '' }}"
+        autocomplete="tel"
+        aria-invalid="{{ 'true' if errors.phone else 'false' }}"
+        required
+      >
+      {% if errors.phone %}
+      <p class="field-error">{{ errors.phone }}</p>
+      {% endif %}
+
+      <label for="password">Password</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        minlength="8"
+        maxlength="128"
+        autocomplete="new-password"
+        aria-invalid="{{ 'true' if errors.password else 'false' }}"
+        required
+      >
+      <p class="form-hint">
+        Use at least 8 characters with at least one letter and one number.
+      </p>
+      {% if errors.password %}
+      <p class="field-error">{{ errors.password }}</p>
+      {% endif %}
+
+      <button type="submit">Create attendee account</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

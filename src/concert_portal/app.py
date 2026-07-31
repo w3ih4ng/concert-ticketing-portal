@@ -1,3 +1,4 @@
+import re
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import date as date_cls
@@ -8,10 +9,12 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Upload
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pwdlib import PasswordHash
 from sqlmodel import Session, select
 
 from concert_portal.database import get_session, init_db
 from concert_portal.models import (
+    AttendeeCreate,
     Booking,
     BookingCreate,
     BookingRead,
@@ -22,7 +25,142 @@ from concert_portal.models import (
     Ticket,
     TicketCreate,
     TicketRead,
+    User,
+    UserRead,
 )
+
+# --- SCRUM-11: Attendee registration ---
+
+password_hash = PasswordHash.recommended()
+
+USER_NAME_MIN_LEN = 2
+USER_NAME_MAX_LEN = 100
+PASSWORD_MIN_LEN = 8
+PASSWORD_MAX_LEN = 128
+
+EMAIL_PATTERN = re.compile(
+    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
+)
+
+PHONE_PATTERN = re.compile(r"^[0-9+()\-\s]+$")
+
+
+def normalize_email(email: str) -> str:
+    """Trim and normalize an email address for storage and comparison."""
+
+    return email.strip().lower()
+
+
+def validate_attendee_registration(
+    name: str,
+    email: str,
+    phone: str,
+    password: str,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Validate and clean attendee registration values."""
+
+    errors: dict[str, str] = {}
+
+    cleaned_name = " ".join(name.split())
+    cleaned_email = normalize_email(email)
+    cleaned_phone = phone.strip()
+
+    if not cleaned_name:
+        errors["name"] = "Name cannot be blank."
+    elif len(cleaned_name) < USER_NAME_MIN_LEN:
+        errors["name"] = f"Name must be at least {USER_NAME_MIN_LEN} characters."
+    elif len(cleaned_name) > USER_NAME_MAX_LEN:
+        errors["name"] = f"Name must be under {USER_NAME_MAX_LEN} characters."
+
+    if not cleaned_email:
+        errors["email"] = "Email cannot be blank."
+    elif not EMAIL_PATTERN.fullmatch(cleaned_email):
+        errors["email"] = "Enter a valid email address."
+
+    digit_count = sum(character.isdigit() for character in cleaned_phone)
+
+    if not cleaned_phone:
+        errors["phone"] = "Phone number cannot be blank."
+    elif not PHONE_PATTERN.fullmatch(cleaned_phone):
+        errors["phone"] = "Phone number contains invalid characters."
+    elif digit_count < 7 or digit_count > 15:
+        errors["phone"] = "Phone number must contain between 7 and 15 digits."
+
+    if not password:
+        errors["password"] = "Password cannot be blank."
+    elif len(password) < PASSWORD_MIN_LEN:
+        errors["password"] = f"Password must be at least {PASSWORD_MIN_LEN} characters."
+    elif len(password) > PASSWORD_MAX_LEN:
+        errors["password"] = f"Password must not exceed {PASSWORD_MAX_LEN} characters."
+    elif not any(character.isalpha() for character in password):
+        errors["password"] = "Password must contain at least one letter."
+    elif not any(character.isdigit() for character in password):
+        errors["password"] = "Password must contain at least one number."
+
+    values = {
+        "name": cleaned_name,
+        "email": cleaned_email,
+        "phone": cleaned_phone,
+    }
+
+    return errors, values
+
+
+def find_user_by_email(
+    email: str,
+    session: Session,
+) -> User | None:
+    """Find an existing user using a normalized email address."""
+
+    normalized_email = normalize_email(email)
+
+    return session.exec(select(User).where(User.email == normalized_email)).first()
+
+
+def register_attendee_record(
+    name: str,
+    email: str,
+    phone: str,
+    password: str,
+    session: Session,
+) -> User:
+    """Validate and save a new attendee account."""
+
+    errors, values = validate_attendee_registration(
+        name,
+        email,
+        phone,
+        password,
+    )
+
+    if errors:
+        raise HTTPException(
+            status_code=422,
+            detail=errors,
+        )
+
+    if find_user_by_email(values["email"], session) is not None:
+        raise HTTPException(
+            status_code=409,
+            detail={"email": "An account with this email already exists."},
+        )
+
+    user = User(
+        name=values["name"],
+        email=values["email"],
+        phone=values["phone"],
+        role="attendee",
+        password_hash=password_hash.hash(password),
+    )
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    return user
+
 
 # --- SCRUM-203: Concert field validation (shared by the API and the HTML form) ---
 CONCERT_TEXT_FIELDS = ("title", "venue", "organiser")
@@ -244,6 +382,92 @@ def _cancellation_message(code: str | None) -> str | None:
 def health() -> dict:
     """Simple health check endpoint used by tests and monitoring."""
     return {"status": "ok"}
+
+
+# --- Attendee API ---
+@app.post(
+    "/users/attendees",
+    response_model=UserRead,
+    status_code=201,
+)
+def register_attendee(
+    data: AttendeeCreate,
+    session: Session = Depends(get_session),
+) -> User:
+    """US01 — Register a new attendee account."""
+
+    return register_attendee_record(
+        data.name,
+        data.email,
+        data.phone,
+        data.password,
+        session,
+    )
+
+
+@app.get("/register/attendee", response_class=HTMLResponse)
+def attendee_registration_form(
+    request: Request,
+    registered: bool = False,
+) -> HTMLResponse:
+    """Show the attendee-registration form."""
+
+    return templates.TemplateResponse(
+        request,
+        "attendee_register.html",
+        {
+            "errors": {},
+            "values": {},
+            "registered": registered,
+        },
+    )
+
+
+@app.post("/register/attendee", response_model=None)
+def attendee_registration_submit(
+    request: Request,
+    name: str = Form(""),
+    email: str = Form(""),
+    phone: str = Form(""),
+    password: str = Form(""),
+    session: Session = Depends(get_session),
+) -> RedirectResponse | HTMLResponse:
+    """Validate and process attendee registration."""
+
+    errors, values = validate_attendee_registration(
+        name,
+        email,
+        phone,
+        password,
+    )
+
+    if not errors and find_user_by_email(values["email"], session) is not None:
+        errors["email"] = "An account with this email already exists."
+
+    if errors:
+        return templates.TemplateResponse(
+            request,
+            "attendee_register.html",
+            {
+                "errors": errors,
+                "values": values,
+                "registered": False,
+            },
+            status_code=422,
+        )
+
+    register_attendee_record(
+        values["name"],
+        values["email"],
+        values["phone"],
+        password,
+        session,
+    )
+
+    return RedirectResponse(
+        url="/register/attendee?registered=true",
+        status_code=303,
+    )
 
 
 # --- JSON API ---

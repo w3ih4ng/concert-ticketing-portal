@@ -1,6 +1,38 @@
 from sqlmodel import Field, SQLModel
 
 
+class UserBase(SQLModel):
+    """Fields shared by stored users and API responses."""
+
+    name: str
+    email: str
+    phone: str
+    role: str
+
+
+class User(UserBase, table=True):
+    """Registered portal user."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    password_hash: str
+    email: str = Field(index=True, unique=True)
+
+
+class AttendeeCreate(SQLModel):
+    """Data required to register an attendee."""
+
+    name: str
+    email: str
+    phone: str
+    password: str
+
+
+class UserRead(UserBase):
+    """Safe user information returned by the API."""
+
+    id: int
+
+
 class ConcertBase(SQLModel):
     title: str
     date: str
