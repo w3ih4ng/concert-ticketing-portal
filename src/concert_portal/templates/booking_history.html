@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}My Booking History{% endblock %}
+
+{% block content %}
+<section class="history-header">
+  <p class="eyebrow">Attendee portal</p>
+  <h1>My Booking History</h1>
+
+  <p class="muted">
+    View your current and previous concert bookings.
+  </p>
+</section>
+
+{% if history %}
+<div class="history-list">
+  {% for item in history %}
+  <article class="surface booking-history-card">
+    <div class="booking-history-main">
+      <div>
+        <p class="booking-reference">
+          Booking #{{ item.booking.id }}
+        </p>
+
+        <h2>{{ item.concert.title }}</h2>
+
+        <p class="muted">
+          {{ item.concert.date }} · {{ item.concert.venue }}
+        </p>
+      </div>
+
+      <span class="badge badge-status">
+        {{ item.booking.status | replace("_", " ") | title }}
+      </span>
+    </div>
+
+    <dl class="booking-history-details">
+      <dt>Ticket</dt>
+      <dd>{{ item.ticket.category }}</dd>
+
+      <dt>Quantity</dt>
+      <dd>{{ item.booking.quantity }}</dd>
+
+      <dt>Total</dt>
+      <dd>
+        RM {{
+          "%.2f"|format(
+            item.ticket.price * item.booking.quantity
+          )
+        }}
+      </dd>
+    </dl>
+
+    <p class="booking-history-action">
+      <a
+        class="btn-pill"
+        href="/bookings/{{ item.booking.id }}"
+      >
+        View booking details
+      </a>
+    </p>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="surface empty-state">
+  <h2>No bookings yet</h2>
+
+  <p>
+    Your concert bookings will appear here after you make one.
+  </p>
+
+  <a class="btn-pill" href="/">
+    Browse concerts
+  </a>
+</div>
+{% endif %}
+{% endblock %}
