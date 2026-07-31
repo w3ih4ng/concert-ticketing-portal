@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}{{ dashboard_role|title }} Dashboard{% endblock %}
+
+{% block content %}
+<section class="surface dashboard-card">
+  <p class="eyebrow">{{ dashboard_role }} portal</p>
+
+  <h1>Welcome, {{ user.name }}</h1>
+
+  <p>
+    You are logged in as
+    <strong>{{ user.role }}</strong>.
+  </p>
+
+  {% if user.role == "organiser" %}
+  <p>
+    Your organiser account has been approved.
+    You can now manage concert activities.
+  </p>
+  {% elif user.role == "staff" %}
+  <p>
+    Use this dashboard to access staff functions.
+  </p>
+  {% elif user.role == "admin" %}
+  <p>
+    Use this dashboard to access administration functions.
+  </p>
+  {% endif %}
+
+  <p>
+    <a class="btn-pill" href="/">View concerts</a>
+  </p>
+</section>
+{% endblock %}

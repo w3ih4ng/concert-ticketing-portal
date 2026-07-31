@@ -9,6 +9,7 @@ Requires-Dist: sqlmodel>=0.0.22
 Requires-Dist: jinja2>=3.1
 Requires-Dist: python-multipart>=0.0.9
 Requires-Dist: pwdlib[argon2]>=0.2
+Requires-Dist: itsdangerous>=2.2
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
 Requires-Dist: pytest-cov; extra == "dev"

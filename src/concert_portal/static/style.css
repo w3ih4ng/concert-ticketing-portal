@@ -611,3 +611,18 @@ textarea:focus-visible {
 .auth-card h2 {
   margin-top: 1.8rem;
 }
+
+.auth-links {
+  font-size: 0.9rem;
+  margin: 1rem 0 0;
+}
+
+.auth-links a {
+  font-weight: 700;
+}
+
+.dashboard-card {
+  margin: 1rem auto 3rem;
+  max-width: 760px;
+  padding: 2rem;
+}

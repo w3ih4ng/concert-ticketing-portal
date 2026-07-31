@@ -1,3 +1,4 @@
+import os
 import re
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -5,12 +6,13 @@ from datetime import date as date_cls
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pwdlib import PasswordHash
 from sqlmodel import Session, select
+from starlette.middleware.sessions import SessionMiddleware
 
 from concert_portal.database import get_session, init_db
 from concert_portal.models import (
@@ -21,6 +23,8 @@ from concert_portal.models import (
     Concert,
     ConcertCreate,
     ConcertRead,
+    LoginRequest,
+    LoginResponse,
     OrganiserCreate,
     OrganiserProfile,
     OrganiserRead,
@@ -372,6 +376,95 @@ def register_organiser_record(
     return organiser_response(user, profile)
 
 
+# --- SCRUM-14: User login and session authentication ---
+
+LOGIN_ERROR_MESSAGE = "Invalid email or password."
+PENDING_ORGANISER_MESSAGE = "Your organiser account is still pending approval."
+
+
+def authenticate_user(
+    email: str,
+    password: str,
+    session: Session,
+) -> User | None:
+    """Authenticate a registered user without revealing which field failed."""
+
+    user = find_user_by_email(email, session)
+
+    if user is None:
+        return None
+
+    if not password_hash.verify(password, user.password_hash):
+        return None
+
+    return user
+
+
+def organiser_account_is_approved(
+    user: User,
+    session: Session,
+) -> bool:
+    """Return whether an organiser profile has been approved."""
+
+    if user.id is None:
+        return False
+
+    profile = session.exec(
+        select(OrganiserProfile).where(OrganiserProfile.user_id == user.id)
+    ).first()
+
+    return profile is not None and profile.status == "approved"
+
+
+def role_redirect_url(role: str) -> str:
+    """Return the destination associated with a user role."""
+
+    destinations = {
+        "attendee": "/",
+        "organiser": "/organiser/dashboard",
+        "staff": "/staff/dashboard",
+        "admin": "/admin/dashboard",
+    }
+
+    return destinations.get(role, "/")
+
+
+def create_login_session(
+    request: Request,
+    user: User,
+) -> None:
+    """Store only the minimum user identity required by the session."""
+
+    if user.id is None:
+        raise HTTPException(
+            status_code=500,
+            detail="User session could not be created.",
+        )
+
+    request.session.clear()
+    request.session["user_id"] = user.id
+
+
+def get_session_user(
+    request: Request,
+    session: Session,
+) -> User | None:
+    """Return the currently logged-in user, if the session is valid."""
+
+    user_id = request.session.get("user_id")
+
+    if not isinstance(user_id, int):
+        return None
+
+    user = session.get(User, user_id)
+
+    if user is None:
+        request.session.clear()
+        return None
+
+    return user
+
+
 # --- SCRUM-203: Concert field validation (shared by the API and the HTML form) ---
 CONCERT_TEXT_FIELDS = ("title", "venue", "organiser")
 CONCERT_TEXT_MIN_LEN = 2
@@ -547,6 +640,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+SESSION_SECRET_KEY = os.getenv(
+    "SESSION_SECRET_KEY",
+    "concert-portal-development-secret",
+)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET_KEY,
+    session_cookie="concert_portal_session",
+    same_site="lax",
+    https_only=False,
+)
+
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
@@ -681,6 +787,126 @@ def attendee_registration_submit(
 
 
 @app.post(
+    "/users/login",
+    response_model=LoginResponse,
+)
+def login_api(
+    data: LoginRequest,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> LoginResponse:
+    """US04 — Authenticate a user and create a signed session."""
+
+    user = authenticate_user(
+        data.email,
+        data.password,
+        session,
+    )
+
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail=LOGIN_ERROR_MESSAGE,
+        )
+
+    if user.role == "organiser" and not organiser_account_is_approved(user, session):
+        raise HTTPException(
+            status_code=403,
+            detail=PENDING_ORGANISER_MESSAGE,
+        )
+
+    create_login_session(request, user)
+
+    if user.id is None:
+        raise HTTPException(
+            status_code=500,
+            detail="User session could not be created.",
+        )
+
+    return LoginResponse(
+        id=user.id,
+        name=user.name,
+        email=user.email,
+        phone=user.phone,
+        role=user.role,
+        redirect_url=role_redirect_url(user.role),
+    )
+
+
+def render_role_dashboard(
+    request: Request,
+    required_role: str,
+    session: Session,
+) -> Response:
+    """Render a dashboard only when the logged-in role matches."""
+
+    user = get_session_user(request, session)
+
+    if user is None:
+        return RedirectResponse(
+            url="/login",
+            status_code=303,
+        )
+
+    if user.role != required_role:
+        return RedirectResponse(
+            url=role_redirect_url(user.role),
+            status_code=303,
+        )
+
+    return templates.TemplateResponse(
+        request,
+        "role_dashboard.html",
+        {
+            "user": user,
+            "dashboard_role": required_role,
+        },
+    )
+
+
+@app.get("/organiser/dashboard", response_class=HTMLResponse)
+def organiser_dashboard(
+    request: Request,
+    session: Session = Depends(get_session),
+) -> Response:
+    """Show the organiser dashboard."""
+
+    return render_role_dashboard(
+        request,
+        "organiser",
+        session,
+    )
+
+
+@app.get("/staff/dashboard", response_class=HTMLResponse)
+def staff_dashboard(
+    request: Request,
+    session: Session = Depends(get_session),
+) -> Response:
+    """Show the staff dashboard."""
+
+    return render_role_dashboard(
+        request,
+        "staff",
+        session,
+    )
+
+
+@app.get("/admin/dashboard", response_class=HTMLResponse)
+def admin_dashboard(
+    request: Request,
+    session: Session = Depends(get_session),
+) -> Response:
+    """Show the administrator dashboard."""
+
+    return render_role_dashboard(
+        request,
+        "admin",
+        session,
+    )
+
+
+@app.post(
     "/users/organisers",
     response_model=OrganiserRead,
     status_code=201,
@@ -785,6 +1011,89 @@ def organiser_registration_submit(
 
     return RedirectResponse(
         url="/register/organiser?registered=true",
+        status_code=303,
+    )
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_form(
+    request: Request,
+    session: Session = Depends(get_session),
+) -> Response:
+    """Show the login form unless the user is already logged in."""
+
+    current_user = get_session_user(request, session)
+
+    if current_user is not None:
+        return RedirectResponse(
+            url=role_redirect_url(current_user.role),
+            status_code=303,
+        )
+
+    return templates.TemplateResponse(
+        request,
+        "login.html",
+        {
+            "error": None,
+            "email": "",
+        },
+    )
+
+
+@app.post("/login", response_model=None)
+def login_submit(
+    request: Request,
+    email: str = Form(""),
+    password: str = Form(""),
+    session: Session = Depends(get_session),
+) -> Response:
+    """Validate credentials and redirect the user based on role."""
+
+    normalized_email = normalize_email(email)
+
+    if not normalized_email or not password:
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {
+                "error": LOGIN_ERROR_MESSAGE,
+                "email": normalized_email,
+            },
+            status_code=422,
+        )
+
+    user = authenticate_user(
+        normalized_email,
+        password,
+        session,
+    )
+
+    if user is None:
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {
+                "error": LOGIN_ERROR_MESSAGE,
+                "email": normalized_email,
+            },
+            status_code=401,
+        )
+
+    if user.role == "organiser" and not organiser_account_is_approved(user, session):
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {
+                "error": PENDING_ORGANISER_MESSAGE,
+                "email": normalized_email,
+            },
+            status_code=403,
+        )
+
+    create_login_session(request, user)
+
+    return RedirectResponse(
+        url=role_redirect_url(user.role),
         status_code=303,
     )
 
