@@ -279,6 +279,27 @@ button,
   transition: background 0.15s ease;
 }
 
+.btn-danger {
+  background: var(--marquee-dark);
+  border: none;
+  border-radius: 999px;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.7rem 1.2rem;
+}
+
+.btn-danger:hover {
+  filter: brightness(0.9);
+}
+
+.btn-danger:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
+
+
 button:hover,
 .btn:hover {
   background: var(--marquee-dark);

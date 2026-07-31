@@ -214,12 +214,30 @@ BOOKING_ERROR_MESSAGES = {
     "concert_missing": "That concert could not be found.",
 }
 
+CANCELLATION_MESSAGES = {
+    "cancelled": "Booking cancelled successfully. The reserved tickets are available again.",
+    "not_pending": "Only bookings that are still pending payment can be cancelled.",
+    "already_cancelled": "This booking has already been cancelled.",
+}
+
 
 def _error_message(code: str | None) -> str | None:
     """Map a short error code from the query string to display text."""
     if code is None:
         return None
     return BOOKING_ERROR_MESSAGES.get(code, "Something went wrong with that booking.")
+
+
+def _cancellation_message(code: str | None) -> str | None:
+    """Map a cancellation result code to a readable message."""
+
+    if code is None:
+        return None
+
+    return CANCELLATION_MESSAGES.get(
+        code,
+        "Something went wrong while cancelling the booking.",
+    )
 
 
 @app.get("/health")
@@ -518,6 +536,64 @@ def create_booking(
     return booking
 
 
+def cancel_booking_record(
+    booking_id: int,
+    session: Session,
+) -> Booking:
+    """Cancel a pending booking and restore its reserved ticket quantity."""
+
+    booking = session.get(Booking, booking_id)
+
+    if booking is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Booking not found",
+        )
+
+    if booking.status == "cancelled":
+        raise HTTPException(
+            status_code=409,
+            detail="This booking has already been cancelled.",
+        )
+
+    if booking.status != "pending_payment":
+        raise HTTPException(
+            status_code=409,
+            detail="Only bookings that are still pending payment can be cancelled.",
+        )
+
+    ticket = session.get(Ticket, booking.ticket_id)
+
+    if ticket is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Ticket not found",
+        )
+
+    ticket.sold = max(ticket.sold - booking.quantity, 0)
+    booking.status = "cancelled"
+
+    session.add(ticket)
+    session.add(booking)
+    session.commit()
+    session.refresh(booking)
+
+    return booking
+
+
+@app.post(
+    "/bookings/{booking_id}/cancel",
+    response_model=BookingRead,
+)
+def cancel_booking(
+    booking_id: int,
+    session: Session = Depends(get_session),
+) -> Booking:
+    """US23 — Cancel a booking that is still pending payment."""
+
+    return cancel_booking_record(booking_id, session)
+
+
 UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 
 
@@ -617,19 +693,65 @@ def booking_new_submit(
 def booking_detail_page(
     booking_id: int,
     request: Request,
+    message: str | None = None,
+    error: str | None = None,
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
-    """Show a booking and its payment proof status."""
+    """Show a booking, payment proof status, and cancellation result."""
+
     booking = session.get(Booking, booking_id)
+
     if booking is None:
-        raise HTTPException(status_code=404, detail="Booking not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Booking not found",
+        )
 
     proof = session.exec(select(PaymentProof).where(PaymentProof.booking_id == booking_id)).first()
+
     ticket = session.get(Ticket, booking.ticket_id)
+
     return templates.TemplateResponse(
         request,
         "booking_detail.html",
-        {"booking": booking, "proof": proof, "ticket": ticket},
+        {
+            "booking": booking,
+            "proof": proof,
+            "ticket": ticket,
+            "message": _cancellation_message(message),
+            "error": _cancellation_message(error),
+        },
+    )
+
+
+@app.post("/bookings/{booking_id}/cancel/form")
+def cancel_booking_submit(
+    booking_id: int,
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    """Process booking cancellation from the booking detail page."""
+
+    try:
+        cancel_booking_record(booking_id, session)
+    except HTTPException as exc:
+        if exc.status_code == 404:
+            raise
+
+        detail = str(exc.detail)
+
+        if "already been cancelled" in detail:
+            error_code = "already_cancelled"
+        else:
+            error_code = "not_pending"
+
+        return RedirectResponse(
+            url=f"/bookings/{booking_id}?error={error_code}",
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        url=f"/bookings/{booking_id}?message=cancelled",
+        status_code=303,
     )
 
 
@@ -643,6 +765,12 @@ def upload_payment_proof(
     booking = session.get(Booking, booking_id)
     if booking is None:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    if booking.status == "cancelled":
+        raise HTTPException(
+            status_code=409,
+            detail="Cancelled bookings cannot upload payment proof",
+        )
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     filename = f"booking_{booking_id}_{file.filename}"

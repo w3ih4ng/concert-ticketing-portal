@@ -1,39 +1,105 @@
 {% extends "base.html" %}
+
 {% block title %}Booking #{{ booking.id }}{% endblock %}
+
 {% block content %}
 <h1>Booking Confirmed</h1>
+
+{% if message %}
+<div class="banner banner-success surface">
+  {{ message }}
+</div>
+{% endif %}
+
+{% if error %}
+<div class="banner banner-error surface">
+  {{ error }}
+</div>
+{% endif %}
 
 <dl class="info-card surface">
   <dt>Booking ID</dt>
   <dd>#{{ booking.id }}</dd>
+
   <dt>Attendee</dt>
   <dd>{{ booking.attendee }}</dd>
+
   <dt>Quantity</dt>
   <dd>{{ booking.quantity }}</dd>
+
   {% if ticket %}
   <dt>Ticket</dt>
-  <dd>{{ ticket.category }} — RM {{ "%.2f"|format(ticket.price) }}</dd>
+  <dd>
+    {{ ticket.category }} — RM {{ "%.2f"|format(ticket.price) }}
+  </dd>
+
   <dt>Total</dt>
-  <dd>RM {{ "%.2f"|format(ticket.price * booking.quantity) }}</dd>
+  <dd>
+    RM {{ "%.2f"|format(ticket.price * booking.quantity) }}
+  </dd>
   {% endif %}
+
   <dt>Status</dt>
-  <dd><span class="badge badge-status">{{ booking.status }}</span></dd>
+  <dd>
+    <span class="badge badge-status">
+      {{ booking.status }}
+    </span>
+  </dd>
 </dl>
 
+{% if booking.status == "pending_payment" %}
+<section class="surface form-card">
+  <h2>Cancel Booking</h2>
+
+  <p>
+    You may cancel this booking before payment confirmation.
+    The reserved tickets will be released.
+  </p>
+
+  <form
+    action="/bookings/{{ booking.id }}/cancel/form"
+    method="post"
+    onsubmit="return confirm('Are you sure you want to cancel this booking?');"
+  >
+    <button class="btn-danger" type="submit">
+      Cancel booking
+    </button>
+  </form>
+</section>
+{% elif booking.status == "cancelled" %}
+<div class="banner banner-error surface">
+  This booking has been cancelled.
+</div>
+{% endif %}
+
+{% if booking.status != "cancelled" %}
 <h2>Payment Proof</h2>
 
 {% if proof %}
 <div class="banner banner-success">
-  Payment proof uploaded ({{ proof.filename }}) — we'll confirm your booking shortly.
+  Payment proof uploaded ({{ proof.filename }}) —
+  we'll confirm your booking shortly.
 </div>
-{% else %}
-<form class="surface form-card" action="/bookings/{{ booking.id }}/payment-proof" method="post"
-      enctype="multipart/form-data">
+{% elif booking.status == "pending_payment" %}
+<form
+  class="surface form-card"
+  action="/bookings/{{ booking.id }}/payment-proof"
+  method="post"
+  enctype="multipart/form-data"
+>
   <label>Upload your payment proof</label>
-  <input type="file" name="file" accept="image/*,.pdf" required>
+  <input
+    type="file"
+    name="file"
+    accept="image/*,.pdf"
+    required
+  >
   <button type="submit">Upload proof</button>
 </form>
 {% endif %}
+{% endif %}
 
-<p><a class="btn-pill" href="/">Back to concerts</a></p>
+<p>
+  <a class="btn-pill" href="/">Back to concerts</a>
+</p>
 {% endblock %}
