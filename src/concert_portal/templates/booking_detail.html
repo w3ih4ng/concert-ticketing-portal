@@ -3,17 +3,23 @@
 {% block title %}Booking #{{ booking.id }}{% endblock %}
 
 {% block content %}
-<h1>Booking Confirmed</h1>
+<h1>Booking Details</h1>
 
 {% if message %}
-<div class="banner banner-success surface">
+<div class="banner banner-success surface" role="status">
   {{ message }}
 </div>
 {% endif %}
 
 {% if error %}
-<div class="banner banner-error surface">
+<div class="banner banner-error surface" role="alert">
   {{ error }}
+</div>
+{% endif %}
+
+{% if payment_error %}
+<div class="banner banner-error surface" role="alert">
+  {{ payment_error }}
 </div>
 {% endif %}
 
@@ -42,7 +48,7 @@
   <dt>Status</dt>
   <dd>
     <span class="badge badge-status">
-      {{ booking.status }}
+      {{ booking.status | replace("_", " ") | title }}
     </span>
   </dd>
 </dl>
@@ -67,36 +73,58 @@
   </form>
 </section>
 {% elif booking.status == "cancelled" %}
-<div class="banner banner-error surface">
+<div class="banner banner-error surface" role="status">
   This booking has been cancelled.
 </div>
 {% endif %}
 
 {% if booking.status != "cancelled" %}
-<h2>Payment Proof</h2>
+<section class="surface form-card">
+  <h2>Payment Proof</h2>
 
-{% if proof %}
-<div class="banner banner-success">
-  Payment proof uploaded ({{ proof.filename }}) —
-  we'll confirm your booking shortly.
-</div>
-{% elif booking.status == "pending_payment" %}
-<form
-  class="surface form-card"
-  action="/bookings/{{ booking.id }}/payment-proof"
-  method="post"
-  enctype="multipart/form-data"
->
-  <label>Upload your payment proof</label>
-  <input
-    type="file"
-    name="file"
-    accept="image/*,.pdf"
-    required
+  {% if booking.status == "payment_uploaded" and proof %}
+  <div class="banner banner-success" role="status">
+    Payment proof uploaded. It is waiting for admin review.
+  </div>
+
+  <p class="muted">
+    Stored file: {{ proof.filename }}
+  </p>
+
+  {% elif booking.status == "confirmed" %}
+  <div class="banner banner-success" role="status">
+    Payment verified. Your booking has been confirmed.
+  </div>
+
+  {% elif booking.status == "pending_payment" and not proof %}
+  <p class="muted">
+    Upload a JPG, JPEG, PNG or PDF file.
+    Maximum file size: 5 MB.
+  </p>
+
+  <form
+    action="/bookings/{{ booking.id }}/payment-proof"
+    method="post"
+    enctype="multipart/form-data"
   >
-  <button type="submit">Upload proof</button>
-</form>
-{% endif %}
+    <label for="file">
+      Upload your payment proof
+    </label>
+
+    <input
+      id="file"
+      type="file"
+      name="file"
+      accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+      required
+    >
+
+    <button type="submit">
+      Upload proof
+    </button>
+  </form>
+  {% endif %}
+</section>
 {% endif %}
 
 <p>
