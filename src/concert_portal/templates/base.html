@@ -11,20 +11,28 @@
     <div class="nav-inner">
       <a class="brand" href="/">CONCERT<span>PORTAL</span></a>
       <div class="nav-actions">
-        <a class="nav-link" href="/register/attendee">
-          Attendee Registration
-        </a>
+        {% if request.session.get("user_id") %}
+          <form class="logout-form" action="/logout" method="post">
+            <button class="nav-link logout-button" type="submit">
+              Logout
+            </button>
+          </form>
+        {% else %}
+          <a class="nav-link" href="/register/attendee">
+            Attendee Registration
+          </a>
 
-        <a class="nav-link" href="/register/organiser">
-          Organiser Registration
-        </a>
+    <a class="nav-link" href="/register/organiser">
+      Organiser Registration
+    </a>
 
-        <a class="nav-link" href="/login">Login</a>
+    <a class="nav-link" href="/login">Login</a>
+  {% endif %}
 
-        <a class="btn-pill" href="/concerts/new">
-          + Create Concert
-        </a>
-      </div>
+  <a class="btn-pill" href="/concerts/new">
+    + Create Concert
+  </a>
+</div>
     </div>
   </nav>
   <div class="page">

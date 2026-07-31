@@ -626,3 +626,19 @@ textarea:focus-visible {
   max-width: 760px;
   padding: 2rem;
 }
+
+.logout-form {
+  margin: 0;
+}
+
+.logout-button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.logout-button:hover {
+  text-decoration: underline;
+}

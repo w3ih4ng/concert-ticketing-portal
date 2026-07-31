@@ -42,7 +42,10 @@ def login_api(
             detail=LOGIN_ERROR_MESSAGE,
         )
 
-    if user.role == "organiser" and not organiser_account_is_approved(user, session):
+    if user.role == "organiser" and not organiser_account_is_approved(
+        user,
+        session,
+    ):
         raise HTTPException(
             status_code=403,
             detail=PENDING_ORGANISER_MESSAGE,
@@ -69,6 +72,7 @@ def login_api(
 @router.get("/login", response_class=HTMLResponse)
 def login_form(
     request: Request,
+    logged_out: str | None = None,
     session: Session = Depends(get_session),
 ) -> Response:
     """Show the login form unless the user is already logged in."""
@@ -87,6 +91,7 @@ def login_form(
         {
             "error": None,
             "email": "",
+            "logged_out": logged_out == "true",
         },
     )
 
@@ -109,6 +114,7 @@ def login_submit(
             {
                 "error": LOGIN_ERROR_MESSAGE,
                 "email": normalized_email,
+                "logged_out": False,
             },
             status_code=422,
         )
@@ -126,17 +132,22 @@ def login_submit(
             {
                 "error": LOGIN_ERROR_MESSAGE,
                 "email": normalized_email,
+                "logged_out": False,
             },
             status_code=401,
         )
 
-    if user.role == "organiser" and not organiser_account_is_approved(user, session):
+    if user.role == "organiser" and not organiser_account_is_approved(
+        user,
+        session,
+    ):
         return templates.TemplateResponse(
             request,
             "login.html",
             {
                 "error": PENDING_ORGANISER_MESSAGE,
                 "email": normalized_email,
+                "logged_out": False,
             },
             status_code=403,
         )
@@ -145,5 +156,17 @@ def login_submit(
 
     return RedirectResponse(
         url=role_redirect_url(user.role),
+        status_code=303,
+    )
+
+
+@router.post("/logout", response_model=None)
+def logout(request: Request) -> RedirectResponse:
+    """US05 — Clear the current user session and return to login."""
+
+    request.session.clear()
+
+    return RedirectResponse(
+        url="/login?logged_out=true",
         status_code=303,
     )
