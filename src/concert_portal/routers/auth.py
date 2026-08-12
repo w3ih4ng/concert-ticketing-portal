@@ -7,8 +7,10 @@ from concert_portal.models import LoginRequest, LoginResponse
 from concert_portal.security import (
     LOGIN_ERROR_MESSAGE,
     PENDING_ORGANISER_MESSAGE,
+    REJECTED_ORGANISER_MESSAGE,
     authenticate_user,
     create_login_session,
+    get_organiser_account_status,
     get_session_user,
     organiser_account_is_approved,
     role_redirect_url,
@@ -42,14 +44,26 @@ def login_api(
             detail=LOGIN_ERROR_MESSAGE,
         )
 
-    if user.role == "organiser" and not organiser_account_is_approved(
-        user,
-        session,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail=PENDING_ORGANISER_MESSAGE,
+    if user.role == "organiser":
+        organiser_status = get_organiser_account_status(
+            user,
+            session,
         )
+
+        if organiser_status == "rejected":
+            raise HTTPException(
+                status_code=403,
+                detail=REJECTED_ORGANISER_MESSAGE,
+            )
+
+        if not organiser_account_is_approved(
+            user,
+            session,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail=PENDING_ORGANISER_MESSAGE,
+            )
 
     create_login_session(request, user)
 
@@ -137,22 +151,43 @@ def login_submit(
             status_code=401,
         )
 
-    if user.role == "organiser" and not organiser_account_is_approved(
-        user,
-        session,
-    ):
-        return templates.TemplateResponse(
-            request,
-            "login.html",
-            {
-                "error": PENDING_ORGANISER_MESSAGE,
-                "email": normalized_email,
-                "logged_out": False,
-            },
-            status_code=403,
+    if user.role == "organiser":
+        organiser_status = get_organiser_account_status(
+            user,
+            session,
         )
 
-    create_login_session(request, user)
+        if organiser_status == "rejected":
+            return templates.TemplateResponse(
+                request,
+                "login.html",
+                {
+                    "error": REJECTED_ORGANISER_MESSAGE,
+                    "email": normalized_email,
+                    "logged_out": False,
+                },
+                status_code=403,
+            )
+
+        if not organiser_account_is_approved(
+            user,
+            session,
+        ):
+            return templates.TemplateResponse(
+                request,
+                "login.html",
+                {
+                    "error": PENDING_ORGANISER_MESSAGE,
+                    "email": normalized_email,
+                    "logged_out": False,
+                },
+                status_code=403,
+            )
+
+    create_login_session(
+        request,
+        user,
+    )
 
     return RedirectResponse(
         url=role_redirect_url(user.role),

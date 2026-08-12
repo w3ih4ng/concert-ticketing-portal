@@ -179,3 +179,107 @@ def register_organiser_record(
     session.refresh(profile)
 
     return organiser_response(user, profile)
+
+
+def get_pending_organisers(
+    session: Session,
+) -> list[OrganiserRead]:
+    """Return organiser registration requests waiting for admin review."""
+
+    profiles = session.exec(
+        select(OrganiserProfile).where(
+            OrganiserProfile.status == "pending",
+        )
+    ).all()
+
+    organisers: list[OrganiserRead] = []
+
+    for profile in profiles:
+        user = session.get(
+            User,
+            profile.user_id,
+        )
+
+        if user is None:
+            continue
+
+        organisers.append(
+            organiser_response(
+                user,
+                profile,
+            )
+        )
+
+    return organisers
+
+
+def get_organiser_profile(
+    profile_id: int,
+    session: Session,
+) -> OrganiserProfile:
+    """Return an organiser profile or raise 404."""
+
+    profile = session.get(
+        OrganiserProfile,
+        profile_id,
+    )
+
+    if profile is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Organiser registration request not found.",
+        )
+
+    return profile
+
+
+def approve_organiser(
+    profile_id: int,
+    session: Session,
+) -> OrganiserProfile:
+    """Approve a pending organiser registration request."""
+
+    profile = get_organiser_profile(
+        profile_id,
+        session,
+    )
+
+    if profile.status != "pending":
+        raise HTTPException(
+            status_code=409,
+            detail="Only pending organiser requests can be approved.",
+        )
+
+    profile.status = "approved"
+
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+
+    return profile
+
+
+def reject_organiser(
+    profile_id: int,
+    session: Session,
+) -> OrganiserProfile:
+    """Reject a pending organiser registration request."""
+
+    profile = get_organiser_profile(
+        profile_id,
+        session,
+    )
+
+    if profile.status != "pending":
+        raise HTTPException(
+            status_code=409,
+            detail="Only pending organiser requests can be rejected.",
+        )
+
+    profile.status = "rejected"
+
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+
+    return profile

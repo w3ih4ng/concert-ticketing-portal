@@ -774,3 +774,43 @@ textarea:focus-visible {
     height: 400px;
   }
 }
+
+/* ---------- Admin organiser approval ---------- */
+
+.organiser-review-list {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.organiser-review-card {
+  padding: 1.5rem;
+}
+
+.organiser-review-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.organiser-review-heading h2 {
+  margin: 0.2rem 0;
+}
+
+.organiser-review-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.organiser-review-actions form {
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .organiser-review-heading {
+    flex-direction: column;
+  }
+}

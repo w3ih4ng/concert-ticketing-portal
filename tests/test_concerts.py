@@ -9,7 +9,7 @@ def test_create_concert(client: TestClient) -> None:
     """
     payload = {
         "title": "Rock Night",
-        "date": "2026-08-01",
+        "date": "2030-08-01",
         "venue": "National Stadium",
         "organiser": "organiser1",
     }

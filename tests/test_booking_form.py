@@ -7,7 +7,7 @@ def _create_ticket(client: TestClient, quantity: int = 10) -> tuple[int, int]:
         "/concerts",
         json={
             "title": "Rock Night",
-            "date": "2026-08-01",
+            "date": "2030-08-01",
             "venue": "National Stadium",
             "organiser": "organiser1",
         },
