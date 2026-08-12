@@ -624,6 +624,106 @@ def ticket_sales_period_submit(
     )
 
 
+@router.post(
+    "/concerts/{concert_id}/poster",
+    response_model=None,
+)
+async def upload_concert_poster(
+    concert_id: int,
+    poster: UploadFile = File(...),
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    """US09 — Upload or replace a concert poster."""
+
+    concert = get_concert_by_id(
+        concert_id,
+        session,
+    )
+
+    if concert is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert not found.",
+        )
+
+    content = await poster.read()
+
+    try:
+        extension = validate_concert_poster(
+            filename=poster.filename,
+            content_type=poster.content_type,
+            content=content,
+        )
+    except HTTPException as exc:
+        return RedirectResponse(
+            url=(f"/concerts/{concert_id}" f"?poster_error={exc.status_code}"),
+            status_code=303,
+        )
+
+    stored_filename = generate_concert_poster_filename(
+        concert_id,
+        extension,
+    )
+
+    UPLOAD_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    stored_path = UPLOAD_DIR / Path(stored_filename).name
+
+    stored_path.write_bytes(
+        content,
+    )
+
+    try:
+        save_concert_poster(
+            concert_id,
+            stored_filename,
+            session,
+        )
+    except Exception:
+        if stored_path.is_file():
+            stored_path.unlink()
+
+        raise
+
+    return RedirectResponse(
+        url=f"/concerts/{concert_id}?poster_updated=true",
+        status_code=303,
+    )
+
+
+@router.get(
+    "/concerts/{concert_id}/poster",
+    response_model=None,
+)
+def concert_poster_file(
+    concert_id: int,
+    session: Session = Depends(get_session),
+) -> Response:
+    """Return the stored poster image for a concert."""
+
+    poster = get_concert_poster(
+        concert_id,
+        session,
+    )
+
+    if poster is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert poster not found.",
+        )
+
+    path = get_concert_poster_path(
+        poster,
+    )
+
+    return FileResponse(
+        path,
+    )
+
+
 @router.get(
     "/concerts/{concert_id}",
     response_class=HTMLResponse,
@@ -710,6 +810,11 @@ BOOKING_ERROR_MESSAGES = {
 POSTER_ERROR_MESSAGES = {
     413: ("Concert poster files must not exceed 5 MB."),
     422: ("Concert poster must be a valid JPG, " "JPEG or PNG image."),
+}
+
+POSTER_ERROR_MESSAGES = {
+    413: "Concert poster files must not exceed 5 MB.",
+    422: "Concert poster must be a valid JPG, JPEG or PNG image.",
 }
 
 
