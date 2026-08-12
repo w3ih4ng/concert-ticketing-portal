@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Concert{% endblock %}
+
+{% block content %}
+
+<section class="auth-shell">
+  <div class="surface form-card auth-card">
+
+    <p class="eyebrow">Organiser</p>
+
+    <h1>Edit Concert</h1>
+
+    <p>
+      Update the concert information below.
+    </p>
+
+    {% if updated %}
+    <div class="banner banner-success">
+      Concert details updated successfully.
+    </div>
+    {% endif %}
+
+    <form
+      action="/concerts/{{ concert.id }}/edit"
+      method="post"
+      novalidate
+    >
+
+      <label for="title">
+        Concert title
+      </label>
+
+      <input
+        id="title"
+        name="title"
+        type="text"
+        value="{{ values.title or '' }}"
+        required
+      >
+
+      {% if errors.title %}
+      <p class="field-error">
+        {{ errors.title }}
+      </p>
+      {% endif %}
+
+
+      <label for="date">
+        Concert date
+      </label>
+
+      <input
+        id="date"
+        name="date"
+        type="date"
+        value="{{ values.date or '' }}"
+        required
+      >
+
+      {% if errors.date %}
+      <p class="field-error">
+        {{ errors.date }}
+      </p>
+      {% endif %}
+
+
+      <label for="venue">
+        Venue
+      </label>
+
+      <input
+        id="venue"
+        name="venue"
+        type="text"
+        value="{{ values.venue or '' }}"
+        required
+      >
+
+      {% if errors.venue %}
+      <p class="field-error">
+        {{ errors.venue }}
+      </p>
+      {% endif %}
+
+
+      <label for="organiser">
+        Organiser
+      </label>
+
+      <input
+        id="organiser"
+        name="organiser"
+        type="text"
+        value="{{ values.organiser or '' }}"
+        required
+      >
+
+      {% if errors.organiser %}
+      <p class="field-error">
+        {{ errors.organiser }}
+      </p>
+      {% endif %}
+
+
+      <button type="submit">
+        Save changes
+      </button>
+
+    </form>
+
+    <p>
+      <a href="/concerts/{{ concert.id }}">
+        ← Back to concert
+      </a>
+    </p>
+
+  </div>
+</section>
+
+{% endblock %}
