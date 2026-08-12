@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+
+<section class="auth-shell">
+  <div class="surface form-card auth-card">
+
+    <p class="eyebrow">Account</p>
+
+    <h1>My Profile</h1>
+
+    <p class="muted">
+      Review and update your personal account information.
+    </p>
+
+    {% if updated %}
+    <div class="banner banner-success">
+      Your profile was updated successfully.
+    </div>
+    {% endif %}
+
+    {% if errors.general %}
+    <div class="banner">
+      {{ errors.general }}
+    </div>
+    {% endif %}
+
+    <form
+      action="/profile"
+      method="post"
+      novalidate
+    >
+
+      <label for="name">
+        Full name
+      </label>
+
+      <input
+        id="name"
+        name="name"
+        type="text"
+        value="{{ values.name or '' }}"
+        minlength="2"
+        maxlength="100"
+        autocomplete="name"
+        aria-invalid="{{ 'true' if errors.name else 'false' }}"
+        required
+      >
+
+      {% if errors.name %}
+      <p class="field-error">
+        {{ errors.name }}
+      </p>
+      {% endif %}
+
+
+      <label for="email">
+        Email address
+      </label>
+
+      <input
+        id="email"
+        name="email"
+        type="email"
+        value="{{ values.email or '' }}"
+        maxlength="254"
+        autocomplete="email"
+        aria-invalid="{{ 'true' if errors.email else 'false' }}"
+        required
+      >
+
+      {% if errors.email %}
+      <p class="field-error">
+        {{ errors.email }}
+      </p>
+      {% endif %}
+
+
+      <label for="phone">
+        Phone number
+      </label>
+
+      <input
+        id="phone"
+        name="phone"
+        type="tel"
+        value="{{ values.phone or '' }}"
+        autocomplete="tel"
+        aria-invalid="{{ 'true' if errors.phone else 'false' }}"
+        required
+      >
+
+      {% if errors.phone %}
+      <p class="field-error">
+        {{ errors.phone }}
+      </p>
+      {% endif %}
+
+
+      <label for="password">
+        New password
+      </label>
+
+      <input
+        id="password"
+        name="password"
+        type="password"
+        minlength="8"
+        maxlength="128"
+        autocomplete="new-password"
+        aria-invalid="{{ 'true' if errors.password else 'false' }}"
+      >
+
+      <p class="form-hint">
+        Leave this blank if you do not want to change your password.
+      </p>
+
+      {% if errors.password %}
+      <p class="field-error">
+        {{ errors.password }}
+      </p>
+      {% endif %}
+
+      <button type="submit">
+        Save profile
+      </button>
+
+    </form>
+
+  </div>
+</section>
+
+{% endblock %}

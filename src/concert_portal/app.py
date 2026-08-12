@@ -15,6 +15,7 @@ from concert_portal.routers.bookings import router as bookings_router
 from concert_portal.routers.concerts import router as concerts_router
 from concert_portal.routers.dashboards import router as dashboards_router
 from concert_portal.routers.payments import router as payments_router
+from concert_portal.routers.profile import router as profile_router
 from concert_portal.routers.registrations import router as registrations_router
 from concert_portal.security import SESSION_SECRET_KEY
 from concert_portal.web import STATIC_DIR
@@ -51,6 +52,7 @@ app.include_router(bookings_router)
 app.include_router(payments_router)
 app.include_router(admin_payments.router)
 app.include_router(admin_organisers.router)
+app.include_router(profile_router)
 
 
 @app.get("/health")

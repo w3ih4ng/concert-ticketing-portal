@@ -7,6 +7,7 @@ from concert_portal.validation import (
     normalize_email,
     validate_attendee_registration,
     validate_organiser_registration,
+    validate_profile_update,
 )
 
 
@@ -283,3 +284,53 @@ def reject_organiser(
     session.refresh(profile)
 
     return profile
+
+
+def update_user_profile(
+    user: User,
+    name: str,
+    email: str,
+    phone: str,
+    password: str,
+    session: Session,
+) -> User:
+    """Validate and update a user's profile."""
+
+    errors, values = validate_profile_update(
+        name,
+        email,
+        phone,
+        password,
+    )
+
+    if errors:
+        raise HTTPException(
+            status_code=422,
+            detail=errors,
+        )
+
+    existing_user = find_user_by_email(
+        values["email"],
+        session,
+    )
+
+    if existing_user is not None and existing_user.id != user.id:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "email": "An account with this email already exists.",
+            },
+        )
+
+    user.name = values["name"]
+    user.email = values["email"]
+    user.phone = values["phone"]
+
+    if password:
+        user.password_hash = password_hash.hash(password)
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    return user

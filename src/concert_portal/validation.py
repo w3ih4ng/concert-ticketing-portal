@@ -93,6 +93,60 @@ def validate_attendee_registration(
     return errors, values
 
 
+def validate_profile_update(
+    name: str,
+    email: str,
+    phone: str,
+    password: str,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Validate and clean profile-update values."""
+
+    errors: dict[str, str] = {}
+
+    cleaned_name = " ".join(name.split())
+    cleaned_email = normalize_email(email)
+    cleaned_phone = phone.strip()
+
+    if not cleaned_name:
+        errors["name"] = "Name cannot be blank."
+    elif len(cleaned_name) < USER_NAME_MIN_LEN:
+        errors["name"] = f"Name must be at least {USER_NAME_MIN_LEN} characters."
+    elif len(cleaned_name) > USER_NAME_MAX_LEN:
+        errors["name"] = f"Name must be under {USER_NAME_MAX_LEN} characters."
+
+    if not cleaned_email:
+        errors["email"] = "Email cannot be blank."
+    elif not EMAIL_PATTERN.fullmatch(cleaned_email):
+        errors["email"] = "Enter a valid email address."
+
+    digit_count = sum(character.isdigit() for character in cleaned_phone)
+
+    if not cleaned_phone:
+        errors["phone"] = "Phone number cannot be blank."
+    elif not PHONE_PATTERN.fullmatch(cleaned_phone):
+        errors["phone"] = "Phone number contains invalid characters."
+    elif digit_count < 7 or digit_count > 15:
+        errors["phone"] = "Phone number must contain between 7 and 15 digits."
+
+    if password:
+        if len(password) < PASSWORD_MIN_LEN:
+            errors["password"] = f"Password must be at least {PASSWORD_MIN_LEN} characters."
+        elif len(password) > PASSWORD_MAX_LEN:
+            errors["password"] = f"Password must not exceed {PASSWORD_MAX_LEN} characters."
+        elif not any(character.isalpha() for character in password):
+            errors["password"] = "Password must contain at least one letter."
+        elif not any(character.isdigit() for character in password):
+            errors["password"] = "Password must contain at least one number."
+
+    values = {
+        "name": cleaned_name,
+        "email": cleaned_email,
+        "phone": cleaned_phone,
+    }
+
+    return errors, values
+
+
 def validate_organiser_registration(
     name: str,
     email: str,
