@@ -814,3 +814,18 @@ textarea:focus-visible {
     flex-direction: column;
   }
 }
+
+/* ---------- Concert poster ---------- */
+
+.concert-poster-section {
+  margin-bottom: 1.5rem;
+}
+
+.concert-poster {
+  border-radius: 1rem;
+  display: block;
+  height: auto;
+  max-height: 520px;
+  max-width: 100%;
+  object-fit: contain;
+}
