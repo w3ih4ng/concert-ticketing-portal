@@ -8,11 +8,14 @@ src/concert_portal/security.py
 src/concert_portal/validation.py
 src/concert_portal/web.py
 src/concert_portal/routers/__init__.py
+src/concert_portal/routers/admin_organisers.py
+src/concert_portal/routers/admin_payments.py
 src/concert_portal/routers/auth.py
 src/concert_portal/routers/bookings.py
 src/concert_portal/routers/concerts.py
 src/concert_portal/routers/dashboards.py
 src/concert_portal/routers/payments.py
+src/concert_portal/routers/profile.py
 src/concert_portal/routers/registrations.py
 src/concert_portal/services/__init__.py
 src/concert_portal/services/bookings.py
@@ -24,9 +27,12 @@ src/concert_ticketing_portal.egg-info/SOURCES.txt
 src/concert_ticketing_portal.egg-info/dependency_links.txt
 src/concert_ticketing_portal.egg-info/requires.txt
 src/concert_ticketing_portal.egg-info/top_level.txt
+tests/test_admin_organiser_approval.py
+tests/test_admin_payment_verification.py
 tests/test_attendee_registration.py
 tests/test_booking_cancellation.py
 tests/test_booking_form.py
+tests/test_booking_history.py
 tests/test_bookings.py
 tests/test_concert_validation.py
 tests/test_concerts.py
@@ -37,5 +43,7 @@ tests/test_logout.py
 tests/test_organiser_forms.py
 tests/test_organiser_registration.py
 tests/test_payment_proof.py
+tests/test_payment_upload_validation.py
+tests/test_profile.py
 tests/test_ticket_booking_validation.py
 tests/test_tickets.py
