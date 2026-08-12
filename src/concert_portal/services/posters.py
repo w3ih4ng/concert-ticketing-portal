@@ -81,9 +81,7 @@ def validate_concert_poster(
     if extension in {".jpg", ".jpeg"}:
         valid_signature = content.startswith(b"\xff\xd8\xff")
     else:
-        valid_signature = content.startswith(
-            b"\x89PNG\r\n\x1a\n",
-        )
+        valid_signature = content.startswith(b"\x89PNG\r\n\x1a\n")
 
     if not valid_signature:
         image_type = extension.removeprefix(".").upper()
@@ -165,18 +163,26 @@ def save_concert_poster(
             filename=stored_filename,
         )
 
-        session.add(poster)
+        session.add(
+            poster,
+        )
         session.commit()
-        session.refresh(poster)
+        session.refresh(
+            poster,
+        )
 
         return poster
 
     old_filename = existing.filename
     existing.filename = stored_filename
 
-    session.add(existing)
+    session.add(
+        existing,
+    )
     session.commit()
-    session.refresh(existing)
+    session.refresh(
+        existing,
+    )
 
     old_path = (UPLOAD_DIR / Path(old_filename).name).resolve()
 

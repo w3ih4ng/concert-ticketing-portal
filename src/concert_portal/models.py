@@ -123,6 +123,19 @@ class ConcertPoster(SQLModel, table=True):
     filename: str
 
 
+class TicketSalesPeriod(SQLModel, table=True):
+    """Ticket sales dates configured for one concert."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    concert_id: int = Field(
+        foreign_key="concert.id",
+        index=True,
+        unique=True,
+    )
+    sales_start: str
+    sales_end: str
+
+
 class TicketBase(SQLModel):
     concert_id: int = Field(foreign_key="concert.id")
     category: str
