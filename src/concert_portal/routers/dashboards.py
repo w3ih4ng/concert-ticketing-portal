@@ -76,25 +76,10 @@ def admin_dashboard(
     request: Request,
     session: Session = Depends(get_session),
 ) -> Response:
-    current_user = get_session_user(request, session)
+    """Show the administrator dashboard."""
 
-    if current_user is None:
-        return RedirectResponse(
-            url="/login",
-            status_code=303,
-        )
-
-    if current_user.role != "admin":
-        return RedirectResponse(
-            url=role_redirect_url(current_user.role),
-            status_code=303,
-        )
-
-    return templates.TemplateResponse(
+    return render_role_dashboard(
         request,
-        "role_dashboard.html",
-        {
-            "user": current_user,
-            "role": "admin",
-        },
+        "admin",
+        session,
     )

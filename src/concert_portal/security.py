@@ -11,6 +11,7 @@ password_hash = PasswordHash.recommended()
 
 LOGIN_ERROR_MESSAGE = "Invalid email or password."
 PENDING_ORGANISER_MESSAGE = "Your organiser account is still pending approval."
+REJECTED_ORGANISER_MESSAGE = "Your organiser registration was rejected."
 SESSION_SECRET_KEY = os.getenv(
     "SESSION_SECRET_KEY",
     "concert-portal-development-secret",
@@ -73,6 +74,27 @@ def organiser_account_is_approved(user: User, session: Session) -> bool:
     ).first()
 
     return profile is not None and profile.status == "approved"
+
+
+def get_organiser_account_status(
+    user: User,
+    session: Session,
+) -> str | None:
+    """Return the organiser account approval status."""
+
+    if user.id is None:
+        return None
+
+    profile = session.exec(
+        select(OrganiserProfile).where(
+            OrganiserProfile.user_id == user.id,
+        )
+    ).first()
+
+    if profile is None:
+        return None
+
+    return profile.status
 
 
 def role_redirect_url(role: str) -> str:

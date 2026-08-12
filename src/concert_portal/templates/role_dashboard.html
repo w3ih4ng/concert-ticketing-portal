@@ -22,20 +22,33 @@
   <p>
     Use this dashboard to access staff functions.
   </p>
-  {% elif user.role == "admin" %}
-    <section class="surface form-card">
-      <h2>Payment Verification</h2>
+ {% elif user.role == "admin" %}
 
-      <p>
-        Review attendee payment proofs and approve or reject them.
-      </p>
+  <section class="surface form-card">
+    <h2>Organiser Account Approval</h2>
 
-      <a class="btn-pill" href="/admin/payments">
-        Review payment proofs
-      </a>
-    </section>
-  {% endif %}
+    <p>
+      Review organiser registration requests and approve or reject them.
+    </p>
 
+    <a class="btn-pill" href="/admin/organisers">
+      Review organiser accounts
+    </a>
+  </section>
+
+  <section class="surface form-card">
+    <h2>Payment Verification</h2>
+
+    <p>
+      Review attendee payment proofs and approve or reject them.
+    </p>
+
+    <a class="btn-pill" href="/admin/payments">
+      Review payment proofs
+    </a>
+  </section>
+
+{% endif %}
   <p>
     <a class="btn-pill" href="/">View concerts</a>
   </p>

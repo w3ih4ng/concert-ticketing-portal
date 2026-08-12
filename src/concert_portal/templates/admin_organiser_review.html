@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Organiser Approval{% endblock %}
+
+{% block content %}
+
+<section class="history-header">
+  <p class="eyebrow">Admin</p>
+  <h1>Organiser Account Approval</h1>
+
+  <p>
+    Review pending organiser registration requests before allowing
+    organisers to access concert management functions.
+  </p>
+</section>
+
+{% if message %}
+<section class="surface form-card">
+  <p>
+    <strong>{{ message }}</strong>
+  </p>
+</section>
+{% endif %}
+
+{% if error %}
+<section class="surface form-card">
+  <p>
+    <strong>{{ error }}</strong>
+  </p>
+</section>
+{% endif %}
+
+{% if organisers %}
+
+<section class="organiser-review-list">
+
+  {% for organiser in organisers %}
+
+  <article class="surface organiser-review-card">
+
+    <div class="organiser-review-heading">
+      <div>
+        <p class="eyebrow">
+          Registration #{{ organiser.id }}
+        </p>
+
+        <h2>
+          {{ organiser.organisation_name }}
+        </h2>
+      </div>
+
+      <strong>
+        Pending
+      </strong>
+    </div>
+
+    <dl class="booking-history-details">
+
+      <dt>Applicant</dt>
+      <dd>{{ organiser.name }}</dd>
+
+      <dt>Email</dt>
+      <dd>{{ organiser.email }}</dd>
+
+      <dt>Phone</dt>
+      <dd>{{ organiser.phone }}</dd>
+
+      <dt>Registration No.</dt>
+      <dd>{{ organiser.registration_number }}</dd>
+
+      <dt>Organisation Address</dt>
+      <dd>{{ organiser.organisation_address }}</dd>
+
+    </dl>
+
+    <div class="organiser-review-actions">
+
+      <form
+        method="post"
+        action="/admin/organisers/{{ organiser.id }}/approve"
+      >
+        <button
+          type="submit"
+          class="btn-pill"
+        >
+          Approve
+        </button>
+      </form>
+
+      <form
+        method="post"
+        action="/admin/organisers/{{ organiser.id }}/reject"
+      >
+        <button
+          type="submit"
+          class="btn-pill"
+        >
+          Reject
+        </button>
+      </form>
+
+    </div>
+
+  </article>
+
+  {% endfor %}
+
+</section>
+
+{% else %}
+
+<section class="surface empty-state">
+
+  <h2>No pending organiser requests</h2>
+
+  <p>
+    All organiser registration requests have already been reviewed.
+  </p>
+
+</section>
+
+{% endif %}
+
+<p>
+  <a href="/admin/dashboard">
+    ← Back to admin dashboard
+  </a>
+</p>
+
+{% endblock %}

@@ -6,7 +6,10 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from concert_portal.database import init_db
-from concert_portal.routers import admin_payments
+from concert_portal.routers import (
+    admin_organisers,
+    admin_payments,
+)
 from concert_portal.routers.auth import router as auth_router
 from concert_portal.routers.bookings import router as bookings_router
 from concert_portal.routers.concerts import router as concerts_router
@@ -47,6 +50,7 @@ app.include_router(concerts_router)
 app.include_router(bookings_router)
 app.include_router(payments_router)
 app.include_router(admin_payments.router)
+app.include_router(admin_organisers.router)
 
 
 @app.get("/health")
