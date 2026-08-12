@@ -6,6 +6,16 @@
 
 <h1>{{ concert.title }}</h1>
 
+{% if poster %}
+<section class="concert-poster-section">
+  <img
+    class="concert-poster"
+    src="/concerts/{{ concert.id }}/poster"
+    alt="Poster for {{ concert.title }}"
+  >
+</section>
+{% endif %}
+
 <dl class="info-card surface">
 
   <dt>Date</dt>
@@ -27,6 +37,56 @@
     Edit concert
   </a>
 </p>
+
+<section class="surface form-card">
+
+  <h2>Concert Poster</h2>
+
+  {% if poster_updated %}
+  <div class="banner banner-success">
+    Concert poster updated successfully.
+  </div>
+  {% endif %}
+
+  {% if poster_error %}
+  <div class="banner banner-error">
+    {{ poster_error }}
+  </div>
+  {% endif %}
+
+  <form
+    action="/concerts/{{ concert.id }}/poster"
+    method="post"
+    enctype="multipart/form-data"
+  >
+
+    <label for="poster">
+      Poster image
+    </label>
+
+    <input
+      id="poster"
+      name="poster"
+      type="file"
+      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+      required
+    >
+
+    <p class="form-hint">
+      JPG, JPEG or PNG only. Maximum file size: 5 MB.
+    </p>
+
+    <button type="submit">
+      {% if poster %}
+        Replace poster
+      {% else %}
+        Upload poster
+      {% endif %}
+    </button>
+
+  </form>
+
+</section>
 
 <h2>Tickets</h2>
 
