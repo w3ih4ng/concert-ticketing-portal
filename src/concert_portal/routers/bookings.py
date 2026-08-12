@@ -16,6 +16,7 @@ from concert_portal.services.bookings import (
     create_booking_record,
     get_attendee_booking_history,
 )
+from concert_portal.services.sales_periods import is_ticket_sales_open
 from concert_portal.validation import validate_booking_fields
 from concert_portal.web import templates
 
@@ -34,16 +35,19 @@ BOOKING_ERROR_MESSAGES = {
     "not_found": "That ticket could not be found.",
     "oversold": "Not enough tickets left for that quantity.",
     "concert_missing": "That concert could not be found.",
+    "sales_closed": ("Ticket sales are not currently open " "for this concert."),
 }
 
 CANCELLATION_MESSAGES = {
     "cancelled": ("Booking cancelled successfully. " "The reserved tickets are available again."),
-    "not_pending": ("Only bookings that are still pending payment can be cancelled."),
-    "already_cancelled": "This booking has already been cancelled.",
+    "not_pending": ("Only bookings that are still pending " "payment can be cancelled."),
+    "already_cancelled": ("This booking has already been cancelled."),
 }
 
 
-def _error_message(code: str | None) -> str | None:
+def _error_message(
+    code: str | None,
+) -> str | None:
     """Map a short error code from the query string to display text."""
 
     if code is None:
@@ -55,7 +59,9 @@ def _error_message(code: str | None) -> str | None:
     )
 
 
-def _cancellation_message(code: str | None) -> str | None:
+def _cancellation_message(
+    code: str | None,
+) -> str | None:
     """Map a cancellation result code to a readable message."""
 
     if code is None:
@@ -63,18 +69,24 @@ def _cancellation_message(code: str | None) -> str | None:
 
     return CANCELLATION_MESSAGES.get(
         code,
-        "Something went wrong while cancelling the booking.",
+        ("Something went wrong while " "cancelling the booking."),
     )
 
 
-@router.get("/bookings/history", response_class=HTMLResponse)
+@router.get(
+    "/bookings/history",
+    response_class=HTMLResponse,
+)
 def booking_history_page(
     request: Request,
     session: Session = Depends(get_session),
 ) -> Response:
     """US22 — Show bookings belonging to the logged-in attendee."""
 
-    current_user = get_session_user(request, session)
+    current_user = get_session_user(
+        request,
+        session,
+    )
 
     if current_user is None:
         return RedirectResponse(
@@ -84,7 +96,9 @@ def booking_history_page(
 
     if current_user.role != "attendee":
         return RedirectResponse(
-            url=role_redirect_url(current_user.role),
+            url=role_redirect_url(
+                current_user.role,
+            ),
             status_code=303,
         )
 
@@ -122,7 +136,10 @@ def create_booking(
 ) -> Booking:
     """Create a validated booking while preventing overselling."""
 
-    return create_booking_record(data, session)
+    return create_booking_record(
+        data,
+        session,
+    )
 
 
 @router.post("/bookings/new")
@@ -135,7 +152,10 @@ def booking_new_submit(
 ) -> RedirectResponse:
     """Validate and process the HTML booking form."""
 
-    current_user = get_session_user(request, session)
+    current_user = get_session_user(
+        request,
+        session,
+    )
 
     booking_user_id: int | None = None
     booking_attendee = attendee
@@ -144,7 +164,10 @@ def booking_new_submit(
         booking_user_id = current_user.id
         booking_attendee = current_user.name
 
-    ticket = session.get(Ticket, ticket_id)
+    ticket = session.get(
+        Ticket,
+        ticket_id,
+    )
 
     if ticket is None:
         return RedirectResponse(
@@ -152,9 +175,25 @@ def booking_new_submit(
             status_code=303,
         )
 
-    remaining = max(ticket.quantity - ticket.sold, 0)
+    if not is_ticket_sales_open(
+        ticket.concert_id,
+        session,
+    ):
+        return RedirectResponse(
+            url=(f"/concerts/{ticket.concert_id}" "?error=sales_closed"),
+            status_code=303,
+        )
 
-    errors, cleaned_attendee, parsed_quantity = validate_booking_fields(
+    remaining = max(
+        ticket.quantity - ticket.sold,
+        0,
+    )
+
+    (
+        errors,
+        cleaned_attendee,
+        parsed_quantity,
+    ) = validate_booking_fields(
         booking_attendee,
         quantity,
         remaining,
@@ -168,8 +207,13 @@ def booking_new_submit(
                 error_code = "blank_attendee"
             else:
                 error_code = "invalid_attendee"
-        elif "remaining" in errors.get("quantity", ""):
+
+        elif "remaining" in errors.get(
+            "quantity",
+            "",
+        ):
             error_code = "oversold"
+
         else:
             error_code = "bad_quantity"
 
@@ -194,11 +238,15 @@ def booking_new_submit(
             session,
             user_id=booking_user_id,
         )
+
     except HTTPException as exc:
-        error_code = BOOKING_ERROR_CODES.get(
-            exc.status_code,
-            "bad_quantity",
-        )
+        if exc.status_code == 409 and "not open" in str(exc.detail).lower():
+            error_code = "sales_closed"
+        else:
+            error_code = BOOKING_ERROR_CODES.get(
+                exc.status_code,
+                "bad_quantity",
+            )
 
         return RedirectResponse(
             url=(f"/concerts/{ticket.concert_id}" f"?error={error_code}"),
@@ -225,7 +273,10 @@ def booking_detail_page(
 ) -> HTMLResponse:
     """Show a booking, payment proof status, and cancellation result."""
 
-    booking = session.get(Booking, booking_id)
+    booking = session.get(
+        Booking,
+        booking_id,
+    )
 
     if booking is None:
         raise HTTPException(
@@ -233,9 +284,16 @@ def booking_detail_page(
             detail="Booking not found",
         )
 
-    proof = session.exec(select(PaymentProof).where(PaymentProof.booking_id == booking_id)).first()
+    proof = session.exec(
+        select(PaymentProof).where(
+            PaymentProof.booking_id == booking_id,
+        )
+    ).first()
 
-    ticket = session.get(Ticket, booking.ticket_id)
+    ticket = session.get(
+        Ticket,
+        booking.ticket_id,
+    )
 
     return templates.TemplateResponse(
         request,
@@ -244,8 +302,12 @@ def booking_detail_page(
             "booking": booking,
             "proof": proof,
             "ticket": ticket,
-            "message": _cancellation_message(message),
-            "error": _cancellation_message(error),
+            "message": _cancellation_message(
+                message,
+            ),
+            "error": _cancellation_message(
+                error,
+            ),
             "payment_error": payment_error,
         },
     )
@@ -263,11 +325,14 @@ def cancel_booking_submit(
             booking_id,
             session,
         )
+
     except HTTPException as exc:
         if exc.status_code == 404:
             raise
 
-        detail = str(exc.detail)
+        detail = str(
+            exc.detail,
+        )
 
         if "already been cancelled" in detail:
             error_code = "already_cancelled"

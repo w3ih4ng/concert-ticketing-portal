@@ -1,5 +1,20 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from pathlib import Path
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+)
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    RedirectResponse,
+    Response,
+)
 from sqlmodel import Session
 
 from concert_portal.database import get_session
@@ -21,11 +36,25 @@ from concert_portal.services.concerts import (
     save_ticket_form,
     update_concert_record,
 )
+from concert_portal.services.posters import (
+    generate_concert_poster_filename,
+    get_concert_poster,
+    get_concert_poster_path,
+    save_concert_poster,
+    validate_concert_poster,
+)
+from concert_portal.services.sales_periods import (
+    get_ticket_sales_period,
+    get_ticket_sales_status,
+    is_ticket_sales_open,
+    save_ticket_sales_period,
+    validate_ticket_sales_period,
+)
 from concert_portal.validation import (
     validate_concert_fields,
     validate_ticket_fields,
 )
-from concert_portal.web import templates
+from concert_portal.web import UPLOAD_DIR, templates
 
 router = APIRouter()
 
@@ -67,7 +96,9 @@ def concerts_page(
         "concerts.html",
         {
             "concerts": concerts,
-            "error": _error_message(error),
+            "error": _error_message(
+                error,
+            ),
         },
     )
 
@@ -233,7 +264,12 @@ def ticket_new_submit(
             status_code=303,
         )
 
-    errors, cleaned_category, parsed_price, parsed_quantity = validate_ticket_fields(
+    (
+        errors,
+        cleaned_category,
+        parsed_price,
+        parsed_quantity,
+    ) = validate_ticket_fields(
         category,
         price,
         quantity,
@@ -378,7 +414,212 @@ def concert_edit_submit(
     )
 
     return RedirectResponse(
-        url=f"/concerts/{concert_id}/edit?updated=true",
+        url=(f"/concerts/{concert_id}/edit" "?updated=true"),
+        status_code=303,
+    )
+
+
+@router.post(
+    "/concerts/{concert_id}/poster",
+    response_model=None,
+)
+async def upload_concert_poster(
+    concert_id: int,
+    poster: UploadFile = File(...),
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    """US09 — Upload or replace a concert poster."""
+
+    concert = get_concert_by_id(
+        concert_id,
+        session,
+    )
+
+    if concert is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert not found.",
+        )
+
+    content = await poster.read()
+
+    try:
+        extension = validate_concert_poster(
+            filename=poster.filename,
+            content_type=poster.content_type,
+            content=content,
+        )
+
+    except HTTPException as exc:
+        return RedirectResponse(
+            url=(f"/concerts/{concert_id}" f"?poster_error={exc.status_code}"),
+            status_code=303,
+        )
+
+    stored_filename = generate_concert_poster_filename(
+        concert_id,
+        extension,
+    )
+
+    UPLOAD_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    stored_path = UPLOAD_DIR / Path(stored_filename).name
+
+    stored_path.write_bytes(
+        content,
+    )
+
+    try:
+        save_concert_poster(
+            concert_id,
+            stored_filename,
+            session,
+        )
+
+    except Exception:
+        if stored_path.is_file():
+            stored_path.unlink()
+
+        raise
+
+    return RedirectResponse(
+        url=(f"/concerts/{concert_id}" "?poster_updated=true"),
+        status_code=303,
+    )
+
+
+@router.get(
+    "/concerts/{concert_id}/poster",
+    response_model=None,
+)
+def concert_poster_file(
+    concert_id: int,
+    session: Session = Depends(get_session),
+) -> Response:
+    """Return the stored poster image for a concert."""
+
+    poster = get_concert_poster(
+        concert_id,
+        session,
+    )
+
+    if poster is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert poster not found.",
+        )
+
+    path = get_concert_poster_path(
+        poster,
+    )
+
+    return FileResponse(
+        path,
+    )
+
+
+@router.get(
+    "/concerts/{concert_id}/sales-period",
+    response_class=HTMLResponse,
+)
+def ticket_sales_period_form(
+    concert_id: int,
+    request: Request,
+    updated: bool = False,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    """US10 — Show ticket sales period form."""
+
+    concert = get_concert_by_id(
+        concert_id,
+        session,
+    )
+
+    if concert is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert not found",
+        )
+
+    sales_period = get_ticket_sales_period(
+        concert_id,
+        session,
+    )
+
+    return templates.TemplateResponse(
+        request,
+        "ticket_sales_period.html",
+        {
+            "concert": concert,
+            "errors": {},
+            "values": {
+                "sales_start": (sales_period.sales_start if sales_period is not None else ""),
+                "sales_end": (sales_period.sales_end if sales_period is not None else ""),
+            },
+            "updated": updated,
+        },
+    )
+
+
+@router.post(
+    "/concerts/{concert_id}/sales-period",
+    response_model=None,
+)
+def ticket_sales_period_submit(
+    concert_id: int,
+    request: Request,
+    sales_start: str = Form(""),
+    sales_end: str = Form(""),
+    session: Session = Depends(get_session),
+) -> RedirectResponse | HTMLResponse:
+    """Validate and save ticket sales period."""
+
+    concert = get_concert_by_id(
+        concert_id,
+        session,
+    )
+
+    if concert is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert not found",
+        )
+
+    errors = validate_ticket_sales_period(
+        sales_start,
+        sales_end,
+    )
+
+    values = {
+        "sales_start": sales_start,
+        "sales_end": sales_end,
+    }
+
+    if errors:
+        return templates.TemplateResponse(
+            request,
+            "ticket_sales_period.html",
+            {
+                "concert": concert,
+                "errors": errors,
+                "values": values,
+                "updated": False,
+            },
+            status_code=422,
+        )
+
+    save_ticket_sales_period(
+        concert_id,
+        sales_start,
+        sales_end,
+        session,
+    )
+
+    return RedirectResponse(
+        url=(f"/concerts/{concert_id}" "/sales-period?updated=true"),
         status_code=303,
     )
 
@@ -391,6 +632,8 @@ def concert_detail_page(
     concert_id: int,
     request: Request,
     error: str | None = None,
+    poster_error: int | None = None,
+    poster_updated: bool = False,
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
     """US14 — Attendee views concert details and ticket options."""
@@ -411,37 +654,69 @@ def concert_detail_page(
         session,
     )
 
+    poster = get_concert_poster(
+        concert_id,
+        session,
+    )
+
+    sales_period = get_ticket_sales_period(
+        concert_id,
+        session,
+    )
+
+    sales_open = is_ticket_sales_open(
+        concert_id,
+        session,
+    )
+
+    sales_status = get_ticket_sales_status(
+        concert_id,
+        session,
+    )
+
     return templates.TemplateResponse(
         request,
         "concert_detail.html",
         {
             "concert": concert,
             "tickets": list(tickets),
-            "error": _error_message(error),
+            "poster": poster,
+            "poster_error": (
+                _poster_error_message(
+                    poster_error,
+                )
+            ),
+            "poster_updated": poster_updated,
+            "sales_period": sales_period,
+            "sales_open": sales_open,
+            "sales_status": sales_status,
+            "error": _error_message(
+                error,
+            ),
         },
     )
 
-
-BOOKING_ERROR_CODES = {
-    400: "bad_quantity",
-    404: "not_found",
-    409: "oversold",
-}
 
 BOOKING_ERROR_MESSAGES = {
     "bad_quantity": "Quantity must be at least 1.",
     "blank_attendee": "Attendee name cannot be blank.",
     "invalid_attendee": "Enter a valid attendee name.",
     "not_found": "That ticket could not be found.",
-    "oversold": "Not enough tickets left for that quantity.",
-    "concert_missing": "That concert could not be found.",
+    "oversold": ("Not enough tickets left for that quantity."),
+    "concert_missing": ("That concert could not be found."),
+    "sales_closed": ("Ticket sales are not currently open " "for this concert."),
+}
+
+POSTER_ERROR_MESSAGES = {
+    413: ("Concert poster files must not exceed 5 MB."),
+    422: ("Concert poster must be a valid JPG, " "JPEG or PNG image."),
 }
 
 
 def _error_message(
     code: str | None,
 ) -> str | None:
-    """Map a short error code from the query string to display text."""
+    """Map a booking error code to display text."""
 
     if code is None:
         return None
@@ -449,4 +724,18 @@ def _error_message(
     return BOOKING_ERROR_MESSAGES.get(
         code,
         "Something went wrong with that booking.",
+    )
+
+
+def _poster_error_message(
+    status_code: int | None,
+) -> str | None:
+    """Map poster upload errors to display text."""
+
+    if status_code is None:
+        return None
+
+    return POSTER_ERROR_MESSAGES.get(
+        status_code,
+        ("The concert poster could " "not be uploaded."),
     )

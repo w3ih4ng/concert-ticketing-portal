@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Ticket Sales Period{% endblock %}
+
+{% block content %}
+
+<section class="auth-shell">
+
+  <div class="surface form-card auth-card">
+
+    <p class="eyebrow">
+      Organiser
+    </p>
+
+    <h1>Ticket Sales Period</h1>
+
+    <p>
+      Set the dates when attendees can book tickets for
+      <strong>{{ concert.title }}</strong>.
+    </p>
+
+    {% if updated %}
+    <div class="banner banner-success">
+      Ticket sales period updated successfully.
+    </div>
+    {% endif %}
+
+    <form
+      action="/concerts/{{ concert.id }}/sales-period"
+      method="post"
+      novalidate
+    >
+
+      <label for="sales_start">
+        Sales start date
+      </label>
+
+      <input
+        id="sales_start"
+        name="sales_start"
+        type="date"
+        value="{{ values.sales_start or '' }}"
+        required
+      >
+
+      {% if errors.sales_start %}
+      <p class="field-error">
+        {{ errors.sales_start }}
+      </p>
+      {% endif %}
+
+
+      <label for="sales_end">
+        Sales end date
+      </label>
+
+      <input
+        id="sales_end"
+        name="sales_end"
+        type="date"
+        value="{{ values.sales_end or '' }}"
+        required
+      >
+
+      {% if errors.sales_end %}
+      <p class="field-error">
+        {{ errors.sales_end }}
+      </p>
+      {% endif %}
+
+
+      <button type="submit">
+        Save sales period
+      </button>
+
+    </form>
+
+    <p>
+      <a href="/concerts/{{ concert.id }}">
+        ← Back to concert
+      </a>
+    </p>
+
+  </div>
+
+</section>
+
+{% endblock %}

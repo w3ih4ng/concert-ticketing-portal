@@ -6,6 +6,22 @@
 
 <h1>{{ concert.title }}</h1>
 
+
+{% if poster %}
+
+<section class="concert-poster-section">
+
+  <img
+    class="concert-poster"
+    src="/concerts/{{ concert.id }}/poster"
+    alt="Poster for {{ concert.title }}"
+  >
+
+</section>
+
+{% endif %}
+
+
 <dl class="info-card surface">
 
   <dt>Date</dt>
@@ -19,33 +35,188 @@
 
 </dl>
 
+
 <p>
+
   <a
     class="btn-pill"
     href="/concerts/{{ concert.id }}/edit"
   >
     Edit concert
   </a>
+
+  <a
+    class="btn-pill"
+    href="/concerts/{{ concert.id }}/sales-period"
+  >
+    Set ticket sales period
+  </a>
+
 </p>
+
+
+<section class="surface form-card">
+
+  <h2>Ticket Sales</h2>
+
+  {% if sales_period %}
+
+    <p>
+      <strong>Sales start:</strong>
+      {{ sales_period.sales_start }}
+    </p>
+
+    <p>
+      <strong>Sales end:</strong>
+      {{ sales_period.sales_end }}
+    </p>
+
+    {% if sales_status == "open" %}
+
+    <div class="banner banner-success">
+      Ticket sales are currently open.
+    </div>
+
+    {% elif sales_status == "not_started" %}
+
+    <div class="banner">
+      Ticket sales have not started yet.
+    </div>
+
+    {% elif sales_status == "ended" %}
+
+    <div class="banner banner-error">
+      Ticket sales have ended.
+    </div>
+
+    {% else %}
+
+    <div class="banner banner-error">
+      Ticket sales are currently closed.
+    </div>
+
+    {% endif %}
+
+  {% else %}
+
+  <p>
+    No ticket sales period has been configured yet.
+  </p>
+
+  {% endif %}
+
+</section>
+
+
+<section class="surface form-card">
+
+  <h2>Concert Poster</h2>
+
+  {% if poster_updated %}
+
+  <div class="banner banner-success">
+    Concert poster updated successfully.
+  </div>
+
+  {% endif %}
+
+  {% if poster_error %}
+
+  <div class="banner banner-error">
+    {{ poster_error }}
+  </div>
+
+  {% endif %}
+
+  <form
+    action="/concerts/{{ concert.id }}/poster"
+    method="post"
+    enctype="multipart/form-data"
+  >
+
+    <label for="poster">
+      Poster image
+    </label>
+
+    <input
+      id="poster"
+      name="poster"
+      type="file"
+      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+      required
+    >
+
+    <p class="form-hint">
+      JPG, JPEG or PNG only.
+      Maximum file size: 5 MB.
+    </p>
+
+    <button type="submit">
+
+      {% if poster %}
+        Replace poster
+      {% else %}
+        Upload poster
+      {% endif %}
+
+    </button>
+
+  </form>
+
+</section>
+
 
 <h2>Tickets</h2>
 
+
 <p>
+
   <a
     class="btn-pill"
     href="/concerts/{{ concert.id }}/tickets/new"
   >
     + Add ticket category
   </a>
+
 </p>
 
+
 {% if error %}
+
 <div class="banner banner-error surface">
   {{ error }}
 </div>
+
 {% endif %}
 
+
 {% if tickets %}
+
+
+{% if not sales_open %}
+
+<div class="banner banner-error surface">
+
+  {% if sales_status == "not_started" %}
+
+    Ticket booking is not available yet.
+    Sales begin on {{ sales_period.sales_start }}.
+
+  {% elif sales_status == "ended" %}
+
+    Ticket booking is closed.
+    Sales ended on {{ sales_period.sales_end }}.
+
+  {% else %}
+
+    Ticket booking is currently unavailable.
+
+  {% endif %}
+
+</div>
+
+{% endif %}
+
 
 <form
   action="/bookings/new"
@@ -74,13 +245,16 @@
 
       </div>
 
+
       <div class="stub-counterfoil">
 
         <input
           type="radio"
           name="ticket_id"
           value="{{ ticket.id }}"
-          {% if remaining <= 0 %}disabled{% endif %}
+          {% if remaining <= 0 or not sales_open %}
+          disabled
+          {% endif %}
           required
         >
 
@@ -100,6 +274,7 @@
 
       </div>
 
+
       {% if remaining <= 0 %}
 
       <div class="stub-stamp">
@@ -114,6 +289,7 @@
 
   </div>
 
+
   <div class="surface form-card">
 
     <label for="attendee">
@@ -123,8 +299,10 @@
     <input
       id="attendee"
       name="attendee"
+      {% if not sales_open %}disabled{% endif %}
       required
     >
+
 
     <label for="quantity">
       Quantity
@@ -136,25 +314,40 @@
       type="number"
       min="1"
       value="1"
+      {% if not sales_open %}disabled{% endif %}
       required
     >
 
-    <button type="submit">
-      Book tickets
+
+    <button
+      type="submit"
+      {% if not sales_open %}disabled{% endif %}
+    >
+
+      {% if sales_open %}
+        Book tickets
+      {% else %}
+        Ticket sales closed
+      {% endif %}
+
     </button>
 
   </div>
 
 </form>
 
+
 {% else %}
 
 <div class="surface">
+
   <p>
     No ticket categories available for this concert yet.
   </p>
+
 </div>
 
 {% endif %}
+
 
 {% endblock %}

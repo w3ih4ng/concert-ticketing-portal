@@ -50,7 +50,11 @@ class OrganiserProfile(SQLModel, table=True):
     """Organisation details submitted by an organiser."""
 
     id: int | None = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id", index=True, unique=True)
+    user_id: int = Field(
+        foreign_key="user.id",
+        index=True,
+        unique=True,
+    )
     organisation_name: str
     registration_number: str
     organisation_address: str
@@ -107,18 +111,43 @@ class ConcertRead(ConcertBase):
     id: int
 
 
+class ConcertPoster(SQLModel, table=True):
+    """Poster image associated with one concert."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    concert_id: int = Field(
+        foreign_key="concert.id",
+        index=True,
+        unique=True,
+    )
+    filename: str
+
+
+class TicketSalesPeriod(SQLModel, table=True):
+    """Ticket sales dates configured for one concert."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    concert_id: int = Field(
+        foreign_key="concert.id",
+        index=True,
+        unique=True,
+    )
+    sales_start: str
+    sales_end: str
+
+
 class TicketBase(SQLModel):
     concert_id: int = Field(foreign_key="concert.id")
-    category: str  # US15 — e.g. "VIP", "Standard"
-    price: float  # US16
-    quantity: int  # US17 — total tickets available
+    category: str
+    price: float
+    quantity: int
 
 
 class Ticket(TicketBase, table=True):
     """Database table."""
 
     id: int | None = Field(default=None, primary_key=True)
-    sold: int = Field(default=0)  # used by US19 to prevent overselling
+    sold: int = Field(default=0)
 
 
 class TicketCreate(TicketBase):
@@ -135,7 +164,7 @@ class TicketRead(TicketBase):
 class BookingBase(SQLModel):
     ticket_id: int = Field(foreign_key="ticket.id")
     attendee: str
-    quantity: int  # US20 — how many tickets the attendee selects
+    quantity: int
 
 
 class Booking(BookingBase, table=True):
