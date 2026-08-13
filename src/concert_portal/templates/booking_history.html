@@ -58,6 +58,15 @@
       >
         View booking details
       </a>
+
+      {% if item.booking.status == "confirmed" %}
+      <a
+        class="btn-pill"
+        href="/bookings/{{ item.booking.id }}/eticket"
+      >
+        View e-ticket
+      </a>
+      {% endif %}
     </p>
   </article>
   {% endfor %}
