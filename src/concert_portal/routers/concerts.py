@@ -26,6 +26,12 @@ from concert_portal.models import (
     TicketCreate,
     TicketRead,
 )
+from concert_portal.services.concert_approvals import (
+    ensure_concert_is_editable,
+    get_concert_approval_status,
+    is_concert_locked,
+    submit_concert_for_approval,
+)
 from concert_portal.services.concerts import (
     create_concert_record,
     create_ticket_record,
@@ -84,7 +90,7 @@ def concerts_page(
     request: Request,
     error: str | None = None,
     session: Session = Depends(get_session),
-) -> HTMLResponse:
+) -> Response:
     """Show all concerts."""
 
     concerts = get_concerts(
@@ -109,7 +115,7 @@ def concerts_page(
 )
 def concert_new_form(
     request: Request,
-) -> HTMLResponse:
+) -> Response:
     """Show the create-concert form."""
 
     return templates.TemplateResponse(
@@ -133,7 +139,7 @@ def concert_new_submit(
     venue: str = Form(""),
     organiser: str = Form(""),
     session: Session = Depends(get_session),
-) -> RedirectResponse | HTMLResponse:
+) -> RedirectResponse | Response:
     """Handle the HTML form submission."""
 
     errors = validate_concert_fields(
@@ -184,6 +190,11 @@ def create_ticket(
 ) -> Ticket:
     """US15/16/17 — Create a validated ticket category."""
 
+    ensure_concert_is_editable(
+        data.concert_id,
+        session,
+    )
+
     return create_ticket_record(
         data,
         session,
@@ -214,7 +225,7 @@ def ticket_new_form(
     concert_id: int,
     request: Request,
     session: Session = Depends(get_session),
-) -> HTMLResponse:
+) -> Response:
     """Show the add-ticket-category form for a concert."""
 
     concert = get_concert_by_id(
@@ -226,6 +237,15 @@ def ticket_new_form(
         raise HTTPException(
             status_code=404,
             detail="Concert not found",
+        )
+
+    if is_concert_locked(
+        concert_id,
+        session,
+    ):
+        return RedirectResponse(
+            url=(f"/concerts/{concert_id}" "?approval_error=locked"),
+            status_code=303,
         )
 
     return templates.TemplateResponse(
@@ -250,7 +270,7 @@ def ticket_new_submit(
     price: str = Form(...),
     quantity: str = Form(...),
     session: Session = Depends(get_session),
-) -> RedirectResponse | HTMLResponse:
+) -> RedirectResponse | Response:
     """Validate and process the HTML ticket form."""
 
     concert = get_concert_by_id(
@@ -261,6 +281,15 @@ def ticket_new_submit(
     if concert is None:
         return RedirectResponse(
             url="/?error=concert_missing",
+            status_code=303,
+        )
+
+    if is_concert_locked(
+        concert_id,
+        session,
+    ):
+        return RedirectResponse(
+            url=(f"/concerts/{concert_id}" "?approval_error=locked"),
             status_code=303,
         )
 
@@ -320,7 +349,7 @@ def concert_edit_form(
     request: Request,
     updated: bool = False,
     session: Session = Depends(get_session),
-) -> HTMLResponse:
+) -> Response:
     """US08 — Show the concert edit form."""
 
     concert = get_concert_by_id(
@@ -332,6 +361,15 @@ def concert_edit_form(
         raise HTTPException(
             status_code=404,
             detail="Concert not found",
+        )
+
+    if is_concert_locked(
+        concert_id,
+        session,
+    ):
+        return RedirectResponse(
+            url=(f"/concerts/{concert_id}" "?approval_error=locked"),
+            status_code=303,
         )
 
     return templates.TemplateResponse(
@@ -375,6 +413,15 @@ def concert_edit_submit(
         raise HTTPException(
             status_code=404,
             detail="Concert not found",
+        )
+
+    if is_concert_locked(
+        concert_id,
+        session,
+    ):
+        return RedirectResponse(
+            url=(f"/concerts/{concert_id}" "?approval_error=locked"),
+            status_code=303,
         )
 
     errors = validate_concert_fields(
@@ -439,6 +486,15 @@ async def upload_concert_poster(
         raise HTTPException(
             status_code=404,
             detail="Concert not found.",
+        )
+
+    if is_concert_locked(
+        concert_id,
+        session,
+    ):
+        return RedirectResponse(
+            url=(f"/concerts/{concert_id}" "?approval_error=locked"),
+            status_code=303,
         )
 
     content = await poster.read()
@@ -530,7 +586,7 @@ def ticket_sales_period_form(
     request: Request,
     updated: bool = False,
     session: Session = Depends(get_session),
-) -> HTMLResponse:
+) -> Response:
     """US10 — Show ticket sales period form."""
 
     concert = get_concert_by_id(
@@ -542,6 +598,15 @@ def ticket_sales_period_form(
         raise HTTPException(
             status_code=404,
             detail="Concert not found",
+        )
+
+    if is_concert_locked(
+        concert_id,
+        session,
+    ):
+        return RedirectResponse(
+            url=(f"/concerts/{concert_id}" "?approval_error=locked"),
+            status_code=303,
         )
 
     sales_period = get_ticket_sales_period(
@@ -588,6 +653,15 @@ def ticket_sales_period_submit(
             detail="Concert not found",
         )
 
+    if is_concert_locked(
+        concert_id,
+        session,
+    ):
+        return RedirectResponse(
+            url=(f"/concerts/{concert_id}" "?approval_error=locked"),
+            status_code=303,
+        )
+
     errors = validate_ticket_sales_period(
         sales_start,
         sales_end,
@@ -624,6 +698,37 @@ def ticket_sales_period_submit(
     )
 
 
+@router.post(
+    "/concerts/{concert_id}/submit",
+    response_model=None,
+)
+def submit_concert(
+    concert_id: int,
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    """US11 — Submit a concert for administrator approval."""
+
+    try:
+        submit_concert_for_approval(
+            concert_id,
+            session,
+        )
+
+    except HTTPException as exc:
+        if exc.status_code == 404:
+            raise
+
+        return RedirectResponse(
+            url=(f"/concerts/{concert_id}" "?approval_error=already_submitted"),
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        url=(f"/concerts/{concert_id}" "?submitted=true"),
+        status_code=303,
+    )
+
+
 @router.get(
     "/concerts/{concert_id}",
     response_class=HTMLResponse,
@@ -634,6 +739,8 @@ def concert_detail_page(
     error: str | None = None,
     poster_error: int | None = None,
     poster_updated: bool = False,
+    submitted: bool = False,
+    approval_error: str | None = None,
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
     """US14 — Attendee views concert details and ticket options."""
@@ -674,6 +781,16 @@ def concert_detail_page(
         session,
     )
 
+    approval_status = get_concert_approval_status(
+        concert_id,
+        session,
+    )
+
+    concert_locked = is_concert_locked(
+        concert_id,
+        session,
+    )
+
     return templates.TemplateResponse(
         request,
         "concert_detail.html",
@@ -688,6 +805,12 @@ def concert_detail_page(
             "sales_period": sales_period,
             "sales_open": sales_open,
             "sales_status": sales_status,
+            "approval_status": approval_status,
+            "concert_locked": concert_locked,
+            "submitted": submitted,
+            "approval_error": _approval_error_message(
+                approval_error,
+            ),
             "error": _error_message(
                 error,
             ),
@@ -708,6 +831,11 @@ BOOKING_ERROR_MESSAGES = {
 POSTER_ERROR_MESSAGES = {
     413: "Concert poster files must not exceed 5 MB.",
     422: ("Concert poster must be a valid JPG, " "JPEG or PNG image."),
+}
+
+APPROVAL_ERROR_MESSAGES = {
+    "locked": ("This concert is locked while it is " "awaiting approval or after approval."),
+    "already_submitted": ("This concert has already been submitted " "for approval."),
 }
 
 
@@ -736,4 +864,18 @@ def _poster_error_message(
     return POSTER_ERROR_MESSAGES.get(
         status_code,
         "The concert poster could not be uploaded.",
+    )
+
+
+def _approval_error_message(
+    code: str | None,
+) -> str | None:
+    """Map concert approval errors to display text."""
+
+    if code is None:
+        return None
+
+    return APPROVAL_ERROR_MESSAGES.get(
+        code,
+        "The approval request could not be completed.",
     )
