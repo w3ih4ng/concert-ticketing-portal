@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Verify E-Ticket{% endblock %}
+
+{% block content %}
+
+<section class="surface dashboard-card">
+
+  <p class="eyebrow">
+    Staff Portal
+  </p>
+
+  <h1>
+    Verify Attendee E-Ticket
+  </h1>
+
+  <p>
+    Enter the ticket code shown on the attendee's
+    electronic ticket.
+  </p>
+
+  <form
+    class="surface form-card"
+    action="/staff/tickets/verify"
+    method="get"
+  >
+
+    <label for="code">
+      E-Ticket Code
+    </label>
+
+    <input
+      id="code"
+      name="code"
+      type="text"
+      value="{{ code }}"
+      placeholder="ET-ABC123DEF456"
+      required
+    >
+
+    <button type="submit">
+      Verify Ticket
+    </button>
+
+  </form>
+
+
+  {% if searched %}
+
+    {% if result %}
+
+    <div
+      class="banner banner-success surface"
+      role="status"
+    >
+      Valid e-ticket
+    </div>
+
+    <section class="surface form-card">
+
+      <p class="eyebrow">
+        Verified Ticket
+      </p>
+
+      <h2>
+        {{ result.eticket.ticket_code }}
+      </h2>
+
+      <dl class="info-card">
+
+        <dt>Attendee</dt>
+        <dd>{{ result.booking.attendee }}</dd>
+
+        <dt>Concert</dt>
+        <dd>{{ result.concert.title }}</dd>
+
+        <dt>Date</dt>
+        <dd>{{ result.concert.date }}</dd>
+
+        <dt>Venue</dt>
+        <dd>{{ result.concert.venue }}</dd>
+
+        <dt>Ticket Category</dt>
+        <dd>{{ result.ticket.category }}</dd>
+
+        <dt>Quantity</dt>
+        <dd>{{ result.booking.quantity }}</dd>
+
+        <dt>Booking Status</dt>
+        <dd>
+          {{ result.booking.status
+             | replace("_", " ")
+             | title }}
+        </dd>
+
+        <dt>Booking ID</dt>
+        <dd>#{{ result.booking.id }}</dd>
+
+      </dl>
+
+    </section>
+
+    {% else %}
+
+    <div
+      class="banner banner-error surface"
+      role="alert"
+    >
+      Invalid or unavailable e-ticket.
+    </div>
+
+    <p>
+      Check the ticket code and try again.
+    </p>
+
+    {% endif %}
+
+  {% endif %}
+
+
+  <p>
+    <a
+      class="btn-pill"
+      href="/staff/dashboard"
+    >
+      Back to staff dashboard
+    </a>
+  </p>
+
+</section>
+
+{% endblock %}
