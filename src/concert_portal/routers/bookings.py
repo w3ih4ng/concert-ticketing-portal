@@ -16,6 +16,7 @@ from concert_portal.services.bookings import (
     create_booking_record,
     get_attendee_booking_history,
 )
+from concert_portal.services.etickets import get_attendee_eticket
 from concert_portal.services.sales_periods import is_ticket_sales_open
 from concert_portal.validation import validate_booking_fields
 from concert_portal.web import templates
@@ -121,6 +122,60 @@ def booking_history_page(
         {
             "user": current_user,
             "history": history,
+        },
+    )
+
+
+@router.get(
+    "/bookings/{booking_id}/eticket",
+    response_class=HTMLResponse,
+)
+def attendee_eticket_page(
+    booking_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> Response:
+    """SCRUM-141 — Show an attendee their confirmed e-ticket."""
+
+    current_user = get_session_user(
+        request,
+        session,
+    )
+
+    if current_user is None:
+        return RedirectResponse(
+            url="/login",
+            status_code=303,
+        )
+
+    if current_user.role != "attendee":
+        return RedirectResponse(
+            url=role_redirect_url(
+                current_user.role,
+            ),
+            status_code=303,
+        )
+
+    if current_user.id is None:
+        request.session.clear()
+
+        return RedirectResponse(
+            url="/login",
+            status_code=303,
+        )
+
+    item = get_attendee_eticket(
+        booking_id,
+        current_user.id,
+        session,
+    )
+
+    return templates.TemplateResponse(
+        request,
+        "eticket.html",
+        {
+            "user": current_user,
+            "item": item,
         },
     )
 

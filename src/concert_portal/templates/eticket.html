@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}E-Ticket {{ item.eticket.ticket_code }}{% endblock %}
+
+{% block content %}
+
+<section class="surface dashboard-card">
+
+  <p class="eyebrow">
+    Electronic Ticket
+  </p>
+
+  <h1>
+    {{ item.concert.title }}
+  </h1>
+
+  <p>
+    Your payment has been verified and this
+    e-ticket is ready to use for entry.
+  </p>
+
+  <section class="surface form-card">
+
+    <p class="eyebrow">
+      Ticket Code
+    </p>
+
+    <h2>
+      {{ item.eticket.ticket_code }}
+    </h2>
+
+    <dl class="info-card">
+
+      <dt>Attendee</dt>
+      <dd>{{ item.booking.attendee }}</dd>
+
+      <dt>Concert</dt>
+      <dd>{{ item.concert.title }}</dd>
+
+      <dt>Date</dt>
+      <dd>{{ item.concert.date }}</dd>
+
+      <dt>Venue</dt>
+      <dd>{{ item.concert.venue }}</dd>
+
+      <dt>Ticket Category</dt>
+      <dd>{{ item.ticket.category }}</dd>
+
+      <dt>Quantity</dt>
+      <dd>{{ item.booking.quantity }}</dd>
+
+      <dt>Booking ID</dt>
+      <dd>#{{ item.booking.id }}</dd>
+
+      <dt>Generated</dt>
+      <dd>{{ item.eticket.generated_at }}</dd>
+
+    </dl>
+
+    <div class="banner banner-success">
+      Valid confirmed e-ticket
+    </div>
+
+  </section>
+
+  <p>
+    <a
+      class="btn-pill"
+      href="/bookings/{{ item.booking.id }}"
+    >
+      Back to booking
+    </a>
+
+    <a
+      class="btn-pill"
+      href="/bookings/history"
+    >
+      My booking history
+    </a>
+  </p>
+
+</section>
+
+{% endblock %}

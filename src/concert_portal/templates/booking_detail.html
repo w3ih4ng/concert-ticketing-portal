@@ -96,6 +96,15 @@
     Payment verified. Your booking has been confirmed.
   </div>
 
+  <p>
+    <a
+      class="btn-pill"
+      href="/bookings/{{ booking.id }}/eticket"
+    >
+      View e-ticket
+    </a>
+  </p>
+
   {% elif booking.status == "pending_payment" and not proof %}
   <p class="muted">
     Upload a JPG, JPEG, PNG or PDF file.

@@ -1,8 +1,25 @@
+from dataclasses import dataclass
 from uuid import uuid4
 
+from fastapi import HTTPException
 from sqlmodel import Session, select
 
-from concert_portal.models import Booking, ETicket
+from concert_portal.models import (
+    Booking,
+    Concert,
+    ETicket,
+    Ticket,
+)
+
+
+@dataclass(frozen=True)
+class ETicketView:
+    """Information displayed on an attendee e-ticket."""
+
+    eticket: ETicket
+    booking: Booking
+    ticket: Ticket
+    concert: Concert
 
 
 def _generate_ticket_code(
@@ -65,3 +82,68 @@ def generate_eticket(
     )
 
     return eticket
+
+
+def get_attendee_eticket(
+    booking_id: int,
+    user_id: int,
+    session: Session,
+) -> ETicketView:
+    """Return an e-ticket belonging to the logged-in attendee."""
+
+    booking = session.get(
+        Booking,
+        booking_id,
+    )
+
+    if booking is None or booking.user_id != user_id:
+        raise HTTPException(
+            status_code=404,
+            detail="E-ticket not found.",
+        )
+
+    if booking.status != "confirmed":
+        raise HTTPException(
+            status_code=404,
+            detail="E-ticket not found.",
+        )
+
+    eticket = get_eticket_for_booking(
+        booking_id,
+        session,
+    )
+
+    if eticket is None:
+        raise HTTPException(
+            status_code=404,
+            detail="E-ticket not found.",
+        )
+
+    ticket = session.get(
+        Ticket,
+        booking.ticket_id,
+    )
+
+    if ticket is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Ticket not found.",
+        )
+
+    concert = session.get(
+        Concert,
+        ticket.concert_id,
+    )
+
+    if concert is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert not found.",
+        )
+
+    return ETicketView(
+        eticket=eticket,
+        booking=booking,
+        ticket=ticket,
+        concert=concert,
+    )
