@@ -4,7 +4,8 @@
 
 {% block content %}
 
-<section class="surface dashboard-card">
+
+<section class="dashboard-header">
 
   <p class="eyebrow">
     {{ dashboard_role }} portal
@@ -19,8 +20,12 @@
     <strong>{{ user.role }}</strong>.
   </p>
 
+</section>
 
-  {% if user.role == "organiser" %}
+
+{% if user.role == "organiser" %}
+
+<section class="surface dashboard-card">
 
   <p>
     Your organiser account has been approved.
@@ -28,13 +33,115 @@
   </p>
 
 
-  {% elif user.role == "staff" %}
+  <div class="dashboard-action-grid">
+
+    <article class="action-card">
+
+      <p class="eyebrow">
+        Concert Management
+      </p>
+
+      <h2>
+        Create Concert
+      </h2>
+
+      <p>
+        Create a new concert, then configure its
+        poster, ticket categories and sales period.
+      </p>
+
+      <a
+        class="btn-pill"
+        href="/concerts/new"
+      >
+        Create Concert
+      </a>
+
+    </article>
+
+
+    <article class="action-card">
+
+      <p class="eyebrow">
+        Public Portal
+      </p>
+
+      <h2>
+        View Approved Concerts
+      </h2>
+
+      <p>
+        View concerts currently available
+        through the public portal.
+      </p>
+
+      <a
+        class="btn-pill"
+        href="/concerts"
+      >
+        View concerts
+      </a>
+
+    </article>
+
+  </div>
+
+
+  <section class="workflow-panel">
+
+    <p class="eyebrow">
+      Concert Workflow
+    </p>
+
+    <h2>
+      From creation to approval
+    </h2>
+
+
+    <div class="workflow-row">
+
+      <div>
+        <strong>1</strong>
+        <span>Create concert</span>
+      </div>
+
+      <div>
+        <strong>2</strong>
+        <span>Upload poster</span>
+      </div>
+
+      <div>
+        <strong>3</strong>
+        <span>Add tickets</span>
+      </div>
+
+      <div>
+        <strong>4</strong>
+        <span>Set sales period</span>
+      </div>
+
+      <div>
+        <strong>5</strong>
+        <span>Submit approval</span>
+      </div>
+
+    </div>
+
+  </section>
+
+</section>
+
+
+{% elif user.role == "staff" %}
+
+<section class="surface dashboard-card">
 
   <p>
     Use this dashboard to access staff functions.
   </p>
 
-  <section class="surface form-card">
+
+  <div class="staff-primary-action">
 
     <p class="eyebrow">
       Ticket Verification
@@ -56,270 +163,271 @@
       Verify attendee ticket
     </a>
 
-  </section>
-
-
-  {% elif user.role == "admin" %}
-
-  <section class="surface form-card">
-
-    <p class="eyebrow">
-      System Overview
-    </p>
-
-    <h2>
-      Dashboard Summary
-    </h2>
-
-    <div class="card-grid">
-
-      <article class="surface form-card">
-
-        <p class="eyebrow">
-          Users
-        </p>
-
-        <h2>
-          {{ admin_summary.total_users }}
-        </h2>
-
-        <p>
-          Total registered users
-        </p>
-
-      </article>
-
-
-      <article class="surface form-card">
-
-        <p class="eyebrow">
-          Concerts
-        </p>
-
-        <h2>
-          {{ admin_summary.total_concerts }}
-        </h2>
-
-        <p>
-          Total concert records
-        </p>
-
-      </article>
-
-
-      <article class="surface form-card">
-
-        <p class="eyebrow">
-          Bookings
-        </p>
-
-        <h2>
-          {{ admin_summary.total_bookings }}
-        </h2>
-
-        <p>
-          Total ticket bookings
-        </p>
-
-      </article>
-
-
-      <article class="surface form-card">
-
-        <p class="eyebrow">
-          Organiser Accounts
-        </p>
-
-        <h2>
-          {{ admin_summary.pending_organisers }}
-        </h2>
-
-        <p>
-          Pending organiser approvals
-        </p>
-
-      </article>
-
-
-      <article class="surface form-card">
-
-        <p class="eyebrow">
-          Concert Approval
-        </p>
-
-        <h2>
-          {{ admin_summary.pending_concerts }}
-        </h2>
-
-        <p>
-          Concerts awaiting approval
-        </p>
-
-      </article>
-
-
-      <article class="surface form-card">
-
-        <p class="eyebrow">
-          Payments
-        </p>
-
-        <h2>
-          {{ admin_summary.pending_payments }}
-        </h2>
-
-        <p>
-          Payments awaiting verification
-        </p>
-
-      </article>
-
-    </div>
-
-  </section>
-
-
-  {% if admin_summary.pending_concerts > 0 %}
-
-  <div class="banner banner-success">
-
-    {{ admin_summary.pending_concerts }}
-
-    concert{% if admin_summary.pending_concerts != 1 %}s{% endif %}
-
-    waiting for approval.
-
   </div>
 
-  {% endif %}
+</section>
 
 
-  <section class="surface form-card">
+{% elif user.role == "admin" %}
 
-    <h2>
-      Concert Approval
-    </h2>
+<section class="surface dashboard-card">
 
-    {% if admin_summary.pending_concerts > 0 %}
+  <p class="eyebrow">
+    System Overview
+  </p>
 
-    <p>
-      There
+  <h2>
+    Dashboard Summary
+  </h2>
 
-      {% if admin_summary.pending_concerts == 1 %}
-        is
-      {% else %}
-        are
-      {% endif %}
 
-      <strong>
-        {{ admin_summary.pending_concerts }}
+  <div class="summary-grid">
+
+    <article class="summary-card">
+
+      <p class="eyebrow">
+        Users
+      </p>
+
+      <strong class="summary-number">
+        {{ admin_summary.total_users }}
       </strong>
 
-      concert{% if admin_summary.pending_concerts != 1 %}s{% endif %}
+      <p>
+        Total registered users
+      </p>
 
-      awaiting review.
-    </p>
-
-    {% else %}
-
-    <p>
-      There are currently no concerts awaiting approval.
-    </p>
-
-    {% endif %}
-
-    <a
-      class="btn-pill"
-      href="/admin/concerts"
-    >
-      Review concerts
-    </a>
-
-  </section>
+    </article>
 
 
-  <section class="surface form-card">
+    <article class="summary-card">
 
-    <h2>
-      Organiser Account Approval
-    </h2>
+      <p class="eyebrow">
+        Concerts
+      </p>
 
-    <p>
-      <strong>
+      <strong class="summary-number">
+        {{ admin_summary.total_concerts }}
+      </strong>
+
+      <p>
+        Total concert records
+      </p>
+
+    </article>
+
+
+    <article class="summary-card">
+
+      <p class="eyebrow">
+        Bookings
+      </p>
+
+      <strong class="summary-number">
+        {{ admin_summary.total_bookings }}
+      </strong>
+
+      <p>
+        Total ticket bookings
+      </p>
+
+    </article>
+
+
+    <article class="summary-card">
+
+      <p class="eyebrow">
+        Organiser Accounts
+      </p>
+
+      <strong class="summary-number">
         {{ admin_summary.pending_organisers }}
       </strong>
 
-      organiser account{% if admin_summary.pending_organisers != 1 %}s{% endif %}
-      awaiting review.
-    </p>
+      <p>
+        Pending organiser approvals
+      </p>
 
-    <a
-      class="btn-pill"
-      href="/admin/organisers"
-    >
-      Review organiser accounts
-    </a>
-
-  </section>
+    </article>
 
 
-  <section class="surface form-card">
+    <article class="summary-card">
 
-    <h2>
-      Payment Verification
-    </h2>
+      <p class="eyebrow">
+        Concert Approval
+      </p>
 
-    <p>
-      <strong>
+      <strong class="summary-number">
+        {{ admin_summary.pending_concerts }}
+      </strong>
+
+      <p>
+        Concerts awaiting approval
+      </p>
+
+    </article>
+
+
+    <article class="summary-card">
+
+      <p class="eyebrow">
+        Payments
+      </p>
+
+      <strong class="summary-number">
         {{ admin_summary.pending_payments }}
       </strong>
 
-      payment{% if admin_summary.pending_payments != 1 %}s{% endif %}
-      awaiting verification.
-    </p>
+      <p>
+        Payments awaiting verification
+      </p>
 
-    <a
-      class="btn-pill"
-      href="/admin/payments"
-    >
-      Review payment proofs
-    </a>
+    </article>
 
-  </section>
-
-
-  <section class="surface form-card">
-
-    <h2>
-      Staff Accounts
-    </h2>
-
-    <p>
-      Create staff accounts for event-day
-      ticket verification and attendee check-in.
-    </p>
-
-    <a
-      class="btn-pill"
-      href="/admin/staff/new"
-    >
-      Create staff account
-    </a>
-
-  </section>
-
-  {% endif %}
-
-
-  <p>
-    <a
-      class="btn-pill"
-      href="/"
-    >
-      View concerts
-    </a>
-  </p>
+  </div>
 
 </section>
+
+
+<section class="admin-management">
+
+  <p class="eyebrow">
+    Administration
+  </p>
+
+  <h2>
+    Management
+  </h2>
+
+
+  <div class="dashboard-action-grid">
+
+    <article class="surface action-card">
+
+      <h3>
+        Concert Approval
+      </h3>
+
+      {% if admin_summary.pending_concerts > 0 %}
+
+      <p>
+        There
+        {% if admin_summary.pending_concerts == 1 %}
+        is
+        {% else %}
+        are
+        {% endif %}
+
+        <strong>
+          {{ admin_summary.pending_concerts }}
+        </strong>
+
+        concert{% if admin_summary.pending_concerts != 1 %}s{% endif %}
+        awaiting review.
+      </p>
+
+      {% else %}
+
+      <p>
+        There are currently no concerts awaiting approval.
+      </p>
+
+      {% endif %}
+
+      <a
+        class="btn-pill"
+        href="/admin/concerts"
+      >
+        Review concerts
+      </a>
+
+    </article>
+
+
+    <article class="surface action-card">
+
+      <h3>
+        Organiser Account Approval
+      </h3>
+
+      <p>
+        <strong>
+          {{ admin_summary.pending_organisers }}
+        </strong>
+
+        organiser account{% if admin_summary.pending_organisers != 1 %}s{% endif %}
+        awaiting review.
+      </p>
+
+      <a
+        class="btn-pill"
+        href="/admin/organisers"
+      >
+        Review organiser accounts
+      </a>
+
+    </article>
+
+
+    <article class="surface action-card">
+
+      <h3>
+        Payment Verification
+      </h3>
+
+      <p>
+        <strong>
+          {{ admin_summary.pending_payments }}
+        </strong>
+
+        payment{% if admin_summary.pending_payments != 1 %}s{% endif %}
+        awaiting verification.
+      </p>
+
+      <a
+        class="btn-pill"
+        href="/admin/payments"
+      >
+        Review payment proofs
+      </a>
+
+    </article>
+
+
+    <article class="surface action-card">
+
+      <h3>
+        Staff Accounts
+      </h3>
+
+      <p>
+        Create staff accounts for event-day ticket
+        verification and attendee check-in.
+      </p>
+
+      <a
+        class="btn-pill"
+        href="/admin/staff/new"
+      >
+        Create staff account
+      </a>
+
+    </article>
+
+  </div>
+
+</section>
+
+
+<p>
+  <a
+    class="btn-pill"
+    href="/concerts"
+  >
+    View concerts
+  </a>
+</p>
+
+{% endif %}
 
 {% endblock %}

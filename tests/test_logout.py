@@ -45,7 +45,7 @@ def _login_attendee(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/concerts"
 
 
 def test_logout_route_redirects_to_login(
@@ -75,7 +75,7 @@ def test_logout_clears_session(
     )
 
     assert before_logout.status_code == 303
-    assert before_logout.headers["location"] == "/"
+    assert before_logout.headers["location"] == "/concerts"
 
     logout_response = client.post(
         "/logout",

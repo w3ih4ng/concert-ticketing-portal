@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Register | Concert Portal{% endblock %}
+
+{% block content %}
+
+<section class="surface dashboard-card">
+
+  <p class="eyebrow">
+    Create an Account
+  </p>
+
+  <h1>
+    How will you use Concert Portal?
+  </h1>
+
+  <p>
+    Choose the account type that matches what
+    you want to do on the platform.
+  </p>
+
+
+  <div class="card-grid">
+
+    <article class="surface form-card">
+
+      <p class="eyebrow">
+        Attendee
+      </p>
+
+      <h2>
+        I want to attend concerts
+      </h2>
+
+      <p>
+        Discover concerts, book tickets, upload payment
+        proof, manage bookings and access your e-ticket.
+      </p>
+
+      <a
+        class="btn-pill"
+        href="/register/attendee"
+      >
+        Create Attendee Account
+      </a>
+
+    </article>
+
+
+    <article class="surface form-card">
+
+      <p class="eyebrow">
+        Organiser
+      </p>
+
+      <h2>
+        I want to organise concerts
+      </h2>
+
+      <p>
+        Submit an organiser registration request.
+        Approved organisers can create and manage
+        concert events.
+      </p>
+
+      <a
+        class="btn-pill"
+        href="/register/organiser"
+      >
+        Register as Organiser
+      </a>
+
+    </article>
+
+  </div>
+
+
+  <p>
+    Already registered?
+    <a href="/login">
+      Login to your account
+    </a>
+  </p>
+
+</section>
+
+{% endblock %}

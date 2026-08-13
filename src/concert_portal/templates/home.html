@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Concert Portal{% endblock %}
+
+{% block content %}
+
+<section class="home-hero surface">
+
+  <div class="home-hero-content">
+
+    <p class="eyebrow">
+      Concert Registration & Ticketing Portal
+    </p>
+
+    <h1>
+      Find your next live experience.
+    </h1>
+
+    <p class="home-intro">
+      Discover approved concerts, choose your tickets,
+      manage bookings and access your e-ticket in one place.
+    </p>
+
+    <div class="button-row">
+
+      <a
+        class="btn-pill"
+        href="/concerts"
+      >
+        Browse Concerts
+      </a>
+
+      {% if not request.session.get("user_id") %}
+
+      <a
+        class="btn-secondary"
+        href="/register"
+      >
+        Create Account
+      </a>
+
+      {% endif %}
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<section class="home-section">
+
+  <div class="section-heading">
+
+    <div>
+      <p class="eyebrow">
+        Discover
+      </p>
+
+      <h2>
+        Featured Concerts
+      </h2>
+    </div>
+
+    <a href="/concerts">
+      View all concerts →
+    </a>
+
+  </div>
+
+
+  {% if featured_concerts %}
+
+  <div class="card-grid">
+
+    {% for item in featured_concerts %}
+
+    <article class="surface concert-card">
+
+      {% if item.poster %}
+
+      <a href="/concerts/{{ item.concert.id }}">
+        <img
+          class="concert-card-poster"
+          src="/concerts/{{ item.concert.id }}/poster"
+          alt="Poster for {{ item.concert.title }}"
+        >
+      </a>
+
+      {% else %}
+
+      <div class="concert-card-placeholder">
+        No poster available
+      </div>
+
+      {% endif %}
+
+      <div class="concert-card-body">
+
+        <p class="eyebrow">
+          Upcoming Concert
+        </p>
+
+        <h3>
+          {{ item.concert.title }}
+        </h3>
+
+        <p>
+          {{ item.concert.date }}
+        </p>
+
+        <p class="muted">
+          {{ item.concert.venue }}
+        </p>
+
+        <a
+          class="btn-pill"
+          href="/concerts/{{ item.concert.id }}"
+        >
+          View Concert
+        </a>
+
+      </div>
+
+    </article>
+
+    {% endfor %}
+
+  </div>
+
+  {% else %}
+
+  <div class="surface empty-state">
+    <h3>No concerts available yet</h3>
+    <p>Approved concerts will appear here.</p>
+  </div>
+
+  {% endif %}
+
+</section>
+
+
+<section class="surface home-steps">
+
+  <p class="eyebrow">
+    How It Works
+  </p>
+
+  <div class="steps-grid">
+
+    <div class="step-item">
+      <strong>1</strong>
+      <div>
+        <h3>Discover</h3>
+        <p>Find an approved concert.</p>
+      </div>
+    </div>
+
+    <div class="step-item">
+      <strong>2</strong>
+      <div>
+        <h3>Book</h3>
+        <p>Select your ticket and quantity.</p>
+      </div>
+    </div>
+
+    <div class="step-item">
+      <strong>3</strong>
+      <div>
+        <h3>Attend</h3>
+        <p>Use your approved e-ticket for entry.</p>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+{% endblock %}

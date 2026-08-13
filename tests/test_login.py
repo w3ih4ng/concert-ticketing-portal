@@ -103,7 +103,7 @@ def test_attendee_login_redirects_to_concerts(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/concerts"
 
 
 def test_successful_login_creates_session(
@@ -276,7 +276,7 @@ def test_login_api_returns_safe_user_data(
 
     assert data["email"] == "attendee@example.com"
     assert data["role"] == "attendee"
-    assert data["redirect_url"] == "/"
+    assert data["redirect_url"] == "/concerts"
     assert "password" not in data
     assert "password_hash" not in data
 
@@ -322,4 +322,4 @@ def test_logged_in_user_is_redirected_away_from_login(
     )
 
     assert second_response.status_code == 303
-    assert second_response.headers["location"] == "/"
+    assert second_response.headers["location"] == "/concerts"

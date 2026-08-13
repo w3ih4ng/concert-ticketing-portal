@@ -4,41 +4,121 @@
 
 {% block content %}
 
-<h1>
-  {{ concert.title }}
-</h1>
+{% set user_role = request.session.get("user_role") %}
+
+
+<section class="concert-detail-header">
+
+  <div>
+    <p class="eyebrow">Concert</p>
+
+    <h1>
+      {{ concert.title }}
+    </h1>
+
+    <p class="muted">
+      {{ concert.date }} · {{ concert.venue }}
+    </p>
+  </div>
+
+</section>
 
 
 {% if submitted %}
-
 <div class="banner banner-success surface">
   Concert submitted for approval successfully.
 </div>
-
 {% endif %}
 
 
 {% if approval_error %}
-
 <div class="banner banner-error surface">
   {{ approval_error }}
 </div>
+{% endif %}
+
+
+{% if poster %}
+
+<section class="surface concert-detail-poster">
+
+  <img
+    class="concert-poster"
+    src="/concerts/{{ concert.id }}/poster"
+    alt="Poster for {{ concert.title }}"
+  >
+
+</section>
 
 {% endif %}
 
 
-<section class="surface form-card">
+<section class="surface concert-info-panel">
 
-  <h2>
-    Approval Status
-  </h2>
+  <p class="eyebrow">
+    Event Information
+  </p>
+
+  <dl class="info-card">
+
+    <dt>Date</dt>
+    <dd>{{ concert.date }}</dd>
+
+    <dt>Venue</dt>
+    <dd>{{ concert.venue }}</dd>
+
+    <dt>Organiser</dt>
+    <dd>{{ concert.organiser }}</dd>
+
+  </dl>
+
+</section>
+
+
+<section
+  class="surface organiser-management
+    {% if user_role != 'organiser' %}role-hidden{% endif %}"
+>
+
+  <div class="section-heading">
+
+    <div>
+      <p class="eyebrow">
+        Organiser Management
+      </p>
+
+      <h2>
+        Approval Status
+      </h2>
+    </div>
+
+
+    {% if approval_status == "draft" %}
+    <span class="badge badge-status">
+      Draft
+    </span>
+
+    {% elif approval_status == "pending" %}
+    <span class="badge badge-status">
+      Pending approval
+    </span>
+
+    {% elif approval_status == "approved" %}
+    <span class="badge badge-available">
+      Approved
+    </span>
+
+    {% elif approval_status == "rejected" %}
+    <span class="badge badge-soldout">
+      Rejected
+    </span>
+
+    {% endif %}
+
+  </div>
+
 
   {% if approval_status == "draft" %}
-
-  <p>
-    Status:
-    <strong>Draft</strong>
-  </p>
 
   <p>
     Complete the concert information,
@@ -105,84 +185,99 @@
 
   {% endif %}
 
+
+  {% if not concert_locked %}
+
+  <div class="management-actions">
+
+    <a
+      class="btn-pill"
+      href="/concerts/{{ concert.id }}/edit"
+    >
+      Edit concert
+    </a>
+
+    <a
+      class="btn-pill"
+      href="/concerts/{{ concert.id }}/sales-period"
+    >
+      Set ticket sales period
+    </a>
+
+  </div>
+
+  {% else %}
+
+  <div class="banner">
+    Concert editing is locked while approval is pending.
+  </div>
+
+  {% endif %}
+
 </section>
 
 
-{% if poster %}
+<section class="surface ticket-sales-panel">
 
-<section class="concert-poster-section">
+  <div class="section-heading">
 
-  <img
-    class="concert-poster"
-    src="/concerts/{{ concert.id }}/poster"
-    alt="Poster for {{ concert.title }}"
-  >
+    <div>
+      <p class="eyebrow">
+        Ticket Sales
+      </p>
 
-</section>
-
-{% endif %}
-
-
-<dl class="info-card surface">
-
-  <dt>Date</dt>
-  <dd>{{ concert.date }}</dd>
-
-  <dt>Venue</dt>
-  <dd>{{ concert.venue }}</dd>
-
-  <dt>Organiser</dt>
-  <dd>{{ concert.organiser }}</dd>
-
-</dl>
+      <h2>
+        Ticket Availability
+      </h2>
+    </div>
 
 
-{% if not concert_locked %}
+    {% if sales_status == "open" %}
+    <span class="badge badge-available">
+      Sales Open
+    </span>
 
-<p>
+    {% elif sales_status == "not_started" %}
+    <span class="badge badge-status">
+      Not Started
+    </span>
 
-  <a
-    class="btn-pill"
-    href="/concerts/{{ concert.id }}/edit"
-  >
-    Edit concert
-  </a>
+    {% elif sales_status == "ended" %}
+    <span class="badge badge-soldout">
+      Sales Ended
+    </span>
 
-  <a
-    class="btn-pill"
-    href="/concerts/{{ concert.id }}/sales-period"
-  >
-    Set ticket sales period
-  </a>
+    {% endif %}
 
-</p>
+  </div>
 
-{% else %}
-
-<div class="banner surface">
-  Concert editing is locked while approval is pending.
-</div>
-
-{% endif %}
-
-
-<section class="surface form-card">
-
-  <h2>
-    Ticket Sales
-  </h2>
 
   {% if sales_period %}
 
-  <p>
-    <strong>Sales start:</strong>
-    {{ sales_period.sales_start }}
-  </p>
+  <div class="sales-period-row">
 
-  <p>
-    <strong>Sales end:</strong>
-    {{ sales_period.sales_end }}
-  </p>
+    <div>
+      <span class="muted">
+        Sales start
+      </span>
+
+      <strong>
+        {{ sales_period.sales_start }}
+      </strong>
+    </div>
+
+    <div>
+      <span class="muted">
+        Sales end
+      </span>
+
+      <strong>
+        {{ sales_period.sales_end }}
+      </strong>
+    </div>
+
+  </div>
+
 
   {% if sales_status == "open" %}
 
@@ -190,17 +285,20 @@
     Ticket sales are currently open.
   </div>
 
+
   {% elif sales_status == "not_started" %}
 
   <div class="banner">
     Ticket sales have not started yet.
   </div>
 
+
   {% elif sales_status == "ended" %}
 
   <div class="banner banner-error">
     Ticket sales have ended.
   </div>
+
 
   {% else %}
 
@@ -222,31 +320,34 @@
 </section>
 
 
-{% if not concert_locked %}
-
-<section class="surface form-card">
+<section
+  class="surface organiser-management
+    {% if user_role != 'organiser' %}role-hidden{% endif %}"
+>
 
   <h2>
     Concert Poster
   </h2>
 
-  {% if poster_updated %}
 
+  {% if poster_updated %}
   <div class="banner banner-success">
     Concert poster updated successfully.
   </div>
-
   {% endif %}
 
-  {% if poster_error %}
 
+  {% if poster_error %}
   <div class="banner banner-error">
     {{ poster_error }}
   </div>
-
   {% endif %}
 
+
+  {% if not concert_locked %}
+
   <form
+    class="compact-form"
     action="/concerts/{{ concert.id }}/poster"
     method="post"
     enctype="multipart/form-data"
@@ -272,82 +373,202 @@
     <button type="submit">
 
       {% if poster %}
-        Replace poster
+      Replace poster
       {% else %}
-        Upload poster
+      Upload poster
       {% endif %}
 
     </button>
 
   </form>
 
+  {% endif %}
+
 </section>
 
-{% endif %}
+
+<section class="ticket-section">
+
+  <div class="section-heading">
+
+    <div>
+      <p class="eyebrow">
+        Tickets
+      </p>
+
+      <h2>
+        Select Your Ticket
+      </h2>
+    </div>
 
 
-<h2>
-  Tickets
-</h2>
+    {% if not concert_locked %}
+
+    <a
+      class="btn-pill
+        {% if user_role != 'organiser' %}role-hidden{% endif %}"
+      href="/concerts/{{ concert.id }}/tickets/new"
+    >
+      + Add ticket category
+    </a>
+
+    {% endif %}
+
+  </div>
 
 
-{% if not concert_locked %}
+  {% if error %}
 
-<p>
-
-  <a
-    class="btn-pill"
-    href="/concerts/{{ concert.id }}/tickets/new"
-  >
-    + Add ticket category
-  </a>
-
-</p>
-
-{% endif %}
-
-
-{% if error %}
-
-<div class="banner banner-error surface">
-  {{ error }}
-</div>
-
-{% endif %}
-
-
-{% if tickets %}
-
-
-{% if not sales_open %}
-
-<div class="banner banner-error surface">
-
-  {% if sales_status == "not_started" %}
-
-  Ticket booking is not available yet.
-  Sales begin on {{ sales_period.sales_start }}.
-
-  {% elif sales_status == "ended" %}
-
-  Ticket booking is closed.
-  Sales ended on {{ sales_period.sales_end }}.
-
-  {% else %}
-
-  Ticket booking is currently unavailable.
+  <div class="banner banner-error surface">
+    {{ error }}
+  </div>
 
   {% endif %}
 
-</div>
 
-{% endif %}
+  {% if tickets %}
 
 
-<form
-  action="/bookings/new"
-  method="post"
->
+  {% if not sales_open %}
+
+  <div class="banner banner-error surface">
+
+    {% if sales_status == "not_started" %}
+
+    Ticket booking is not available yet.
+    Sales begin on {{ sales_period.sales_start }}.
+
+    {% elif sales_status == "ended" %}
+
+    Ticket booking is closed.
+    Sales ended on {{ sales_period.sales_end }}.
+
+    {% else %}
+
+    Ticket booking is currently unavailable.
+
+    {% endif %}
+
+  </div>
+
+  {% endif %}
+
+
+  {% if user_role == "attendee" %}
+
+  <form
+    action="/bookings/new"
+    method="post"
+  >
+
+    <div class="stub-grid">
+
+      {% for ticket in tickets %}
+
+      {% set remaining = ticket.quantity - ticket.sold %}
+
+      <label
+        class="stub{% if remaining <= 0 %} is-soldout{% endif %}"
+      >
+
+        <div class="stub-main">
+
+          <div class="stub-category">
+            {{ ticket.category }}
+          </div>
+
+          <div class="stub-price">
+            RM {{ "%.2f"|format(ticket.price) }}
+          </div>
+
+        </div>
+
+
+        <div class="stub-counterfoil">
+
+          <input
+            type="radio"
+            name="ticket_id"
+            value="{{ ticket.id }}"
+            {% if remaining <= 0 or not sales_open %}
+            disabled
+            {% endif %}
+            required
+          >
+
+          {% if remaining > 0 %}
+
+          <span class="badge badge-available">
+            {{ remaining }} left
+          </span>
+
+          {% else %}
+
+          <span class="badge badge-soldout">
+            Sold out
+          </span>
+
+          {% endif %}
+
+        </div>
+
+      </label>
+
+      {% endfor %}
+
+    </div>
+
+
+    <div class="surface booking-box">
+
+      <h3>
+        Booking Details
+      </h3>
+
+      <label for="attendee">
+        Your name
+      </label>
+
+      <input
+        id="attendee"
+        name="attendee"
+        {% if not sales_open %}disabled{% endif %}
+        required
+      >
+
+
+      <label for="quantity">
+        Quantity
+      </label>
+
+      <input
+        id="quantity"
+        name="quantity"
+        type="number"
+        min="1"
+        value="1"
+        {% if not sales_open %}disabled{% endif %}
+        required
+      >
+
+
+      <button
+        type="submit"
+        {% if not sales_open %}disabled{% endif %}
+      >
+        {% if sales_open %}
+        Book tickets
+        {% else %}
+        Ticket sales closed
+        {% endif %}
+      </button>
+
+    </div>
+
+  </form>
+
+
+  {% else %}
 
   <div class="stub-grid">
 
@@ -355,9 +576,7 @@
 
     {% set remaining = ticket.quantity - ticket.sold %}
 
-    <div
-      class="stub{% if remaining <= 0 %} is-soldout{% endif %}"
-    >
+    <div class="stub{% if remaining <= 0 %} is-soldout{% endif %}">
 
       <div class="stub-main">
 
@@ -373,16 +592,6 @@
 
 
       <div class="stub-counterfoil">
-
-        <input
-          type="radio"
-          name="ticket_id"
-          value="{{ ticket.id }}"
-          {% if remaining <= 0 or not sales_open %}
-          disabled
-          {% endif %}
-          required
-        >
 
         {% if remaining > 0 %}
 
@@ -400,15 +609,6 @@
 
       </div>
 
-
-      {% if remaining <= 0 %}
-
-      <div class="stub-stamp">
-        SOLD OUT
-      </div>
-
-      {% endif %}
-
     </div>
 
     {% endfor %}
@@ -416,64 +616,62 @@
   </div>
 
 
-  <div class="surface form-card">
+  {% if not request.session.get("user_id") %}
 
-    <label for="attendee">
-      Your name
-    </label>
+  <div class="surface guest-booking-callout">
 
-    <input
-      id="attendee"
-      name="attendee"
-      {% if not sales_open %}disabled{% endif %}
-      required
-    >
+    <h3>
+      Want to book this concert?
+    </h3>
 
+    <p>
+      Login with an attendee account to book tickets.
+    </p>
 
-    <label for="quantity">
-      Quantity
-    </label>
+    <div class="button-row">
 
-    <input
-      id="quantity"
-      name="quantity"
-      type="number"
-      min="1"
-      value="1"
-      {% if not sales_open %}disabled{% endif %}
-      required
-    >
+      <a
+        class="btn-pill"
+        href="/login"
+      >
+        Login
+      </a>
 
+      <a
+        class="btn-secondary"
+        href="/register/attendee"
+      >
+        Create Attendee Account
+      </a>
 
-    <button
-      type="submit"
-      {% if not sales_open %}disabled{% endif %}
-    >
-
-      {% if sales_open %}
-        Book tickets
-      {% else %}
-        Ticket sales closed
-      {% endif %}
-
-    </button>
+    </div>
 
   </div>
 
-</form>
+  {% endif %}
+
+  {% endif %}
 
 
-{% else %}
+  {% else %}
 
-<div class="surface">
+  <div class="surface empty-state">
 
-  <p>
-    No ticket categories available for this concert yet.
-  </p>
+    <p>
+      No ticket categories available for this concert yet.
+    </p>
 
-</div>
+  </div>
 
-{% endif %}
+  {% endif %}
 
+</section>
+
+
+<p>
+  <a href="/concerts">
+    ← Back to concerts
+  </a>
+</p>
 
 {% endblock %}

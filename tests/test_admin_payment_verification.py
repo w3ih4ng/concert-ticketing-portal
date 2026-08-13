@@ -154,7 +154,7 @@ def test_non_admin_cannot_access_payment_page(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/concerts"
 
 
 def test_admin_can_view_uploaded_payment_proof(
@@ -235,7 +235,7 @@ def test_non_admin_cannot_open_payment_proof_file(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/concerts"
 
 
 def test_admin_approval_confirms_booking(
@@ -414,7 +414,7 @@ def test_non_admin_cannot_approve_payment(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/concerts"
 
     session.refresh(booking)
 

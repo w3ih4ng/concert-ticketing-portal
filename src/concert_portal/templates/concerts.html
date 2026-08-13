@@ -4,7 +4,7 @@
 
 {% block content %}
 
-<section class="surface dashboard-card">
+<section class="page-header">
 
   <p class="eyebrow">
     Concerts
@@ -14,23 +14,24 @@
     Discover Concerts
   </h1>
 
-  <p>
+  <p class="muted">
     Browse concerts that have been approved
     and are available on the portal.
   </p>
 
-  <form
-    class="surface form-card"
-    action="/"
-    method="get"
-  >
+</section>
 
-    <h2>
-      Search & Filter
-    </h2>
+
+<form
+  class="surface filter-bar"
+  action="/concerts"
+  method="get"
+>
+
+  <div class="filter-field filter-search">
 
     <label for="search">
-      Search concert
+      Search Concert
     </label>
 
     <input
@@ -41,8 +42,13 @@
       placeholder="Concert name, venue or organiser"
     >
 
+  </div>
+
+
+  <div class="filter-field">
+
     <label for="event_date">
-      Concert date
+      Concert Date
     </label>
 
     <input
@@ -52,128 +58,141 @@
       value="{{ event_date }}"
     >
 
-    <p>
-      <button type="submit">
-        Search
-      </button>
-
-      {% if search or event_date %}
-      <a
-        class="btn-pill"
-        href="/"
-      >
-        Clear filters
-      </a>
-      {% endif %}
-    </p>
-
-  </form>
-
-  {% if error %}
-  <div class="banner banner-error">
-    {{ error }}
   </div>
-  {% endif %}
 
-  {% if concerts %}
 
-  <div class="card-grid">
+  <div class="filter-actions">
 
-    {% for item in concerts %}
+    <button type="submit">
+      Search
+    </button>
 
-    <article class="surface form-card">
+    {% if search or event_date %}
 
-      {% if item.poster %}
+    <a
+      class="btn-secondary"
+      href="/concerts"
+    >
+      Clear
+    </a>
 
-      <a href="/concerts/{{ item.concert.id }}">
-        <img
-          class="concert-poster"
-          src="/concerts/{{ item.concert.id }}/poster"
-          alt="Poster for {{ item.concert.title }}"
-        >
-      </a>
+    {% endif %}
 
-      {% else %}
+  </div>
 
-      <div class="concert-poster-placeholder">
-        No poster
-      </div>
+</form>
 
-      {% endif %}
+
+{% if error %}
+
+<div class="banner banner-error">
+  {{ error }}
+</div>
+
+{% endif %}
+
+
+{% if concerts %}
+
+<div class="concert-grid">
+
+  {% for item in concerts %}
+
+  <article class="surface concert-card">
+
+    {% if item.poster %}
+
+    <a href="/concerts/{{ item.concert.id }}">
+
+      <img
+        class="concert-card-poster"
+        src="/concerts/{{ item.concert.id }}/poster"
+        alt="Poster for {{ item.concert.title }}"
+      >
+
+    </a>
+
+    {% else %}
+
+    <div class="concert-card-placeholder">
+      No poster
+    </div>
+
+    {% endif %}
+
+
+    <div class="concert-card-body">
 
       <p class="eyebrow">
-        Approved concert
+        Approved Concert
       </p>
 
       <h2>
         {{ item.concert.title }}
       </h2>
 
-      <p>
-        <strong>Date:</strong>
-        {{ item.concert.date }}
-      </p>
+      <dl class="concert-card-details">
 
-      <p>
-        <strong>Venue:</strong>
-        {{ item.concert.venue }}
-      </p>
+        <dt>Date</dt>
+        <dd>{{ item.concert.date }}</dd>
 
-      <p>
-        <strong>Organiser:</strong>
-        {{ item.concert.organiser }}
-      </p>
+        <dt>Venue</dt>
+        <dd>{{ item.concert.venue }}</dd>
 
-      <p>
-        <a
-          class="btn-pill"
-          href="/concerts/{{ item.concert.id }}"
-        >
-          View concert
-        </a>
-      </p>
+        <dt>Organiser</dt>
+        <dd>{{ item.concert.organiser }}</dd>
 
-    </article>
+      </dl>
 
-    {% endfor %}
+      <a
+        class="btn-pill"
+        href="/concerts/{{ item.concert.id }}"
+      >
+        View Concert
+      </a>
 
-  </div>
+    </div>
+
+  </article>
+
+  {% endfor %}
+
+</div>
+
+
+{% else %}
+
+<section class="surface empty-state">
+
+  <h2>
+    No concerts found
+  </h2>
+
+  {% if search or event_date %}
+
+  <p>
+    No approved concerts match your current
+    search or filter.
+  </p>
+
+  <a
+    class="btn-pill"
+    href="/concerts"
+  >
+    Clear filters
+  </a>
 
   {% else %}
 
-  <section class="surface form-card">
-
-    <h2>
-      No concerts found
-    </h2>
-
-    {% if search or event_date %}
-
-    <p>
-      No approved concerts match your current
-      search or filter.
-    </p>
-
-    <a
-      class="btn-pill"
-      href="/"
-    >
-      Clear filters
-    </a>
-
-    {% else %}
-
-    <p>
-      There are currently no approved concerts
-      available.
-    </p>
-
-    {% endif %}
-
-  </section>
+  <p>
+    There are currently no approved concerts
+    available.
+  </p>
 
   {% endif %}
 
 </section>
+
+{% endif %}
 
 {% endblock %}

@@ -1,48 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Concert Portal{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>
+    {% block title %}Concert Portal{% endblock %}
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', path='style.css') }}"
+  >
 </head>
+
+
 <body>
+
+  {% set user_id = request.session.get("user_id") %}
+  {% set user_role = request.session.get("user_role") %}
+
   <nav class="nav">
+
     <div class="nav-inner">
-      <a class="brand" href="/">CONCERT<span>PORTAL</span></a>
+
+      <a
+        class="brand"
+        href="/"
+      >
+        CONCERT<span>PORTAL</span>
+      </a>
+
+
       <div class="nav-actions">
-        {% if request.session.get("user_id") %}
-          <a class="nav-link" href="/profile">
-            My Profile
-          </a>
-          <a class="nav-link" href="/bookings/history">
-            My Bookings
-          </a>
-          <form class="logout-form" action="/logout" method="post">
-            <button class="nav-link logout-button" type="submit">
-              Logout
-            </button>
-          </form>
+
+        {% if not user_id %}
+
+        <a
+          class="nav-link"
+          href="/"
+        >
+          Home
+        </a>
+
+        <a
+          class="nav-link"
+          href="/concerts"
+        >
+          Discover
+        </a>
+
+        <a
+          class="nav-link"
+          href="/login"
+        >
+          Login
+        </a>
+
+        <a
+          class="btn-pill"
+          href="/register"
+        >
+          Register
+        </a>
+
+
+        {% elif user_role == "attendee" %}
+
+        <a
+          class="nav-link"
+          href="/concerts"
+        >
+          Discover
+        </a>
+
+        <a
+          class="nav-link"
+          href="/bookings/history"
+        >
+          My Bookings
+        </a>
+
+        <a
+          class="nav-link"
+          href="/profile"
+        >
+          Profile
+        </a>
+
+        <form
+          class="logout-form"
+          action="/logout"
+          method="post"
+        >
+          <button
+            class="nav-link logout-button"
+            type="submit"
+          >
+            Logout
+          </button>
+        </form>
+
+
+        {% elif user_role == "organiser" %}
+
+        <a
+          class="nav-link"
+          href="/organiser/dashboard"
+        >
+          Dashboard
+        </a>
+
+        <a
+          class="btn-pill"
+          href="/concerts/new"
+        >
+          Create Concert
+        </a>
+
+        <a
+          class="nav-link"
+          href="/profile"
+        >
+          Profile
+        </a>
+
+        <form
+          class="logout-form"
+          action="/logout"
+          method="post"
+        >
+          <button
+            class="nav-link logout-button"
+            type="submit"
+          >
+            Logout
+          </button>
+        </form>
+
+
+        {% elif user_role == "staff" %}
+
+        <a
+          class="nav-link"
+          href="/staff/dashboard"
+        >
+          Dashboard
+        </a>
+
+        <a
+          class="nav-link"
+          href="/staff/tickets/verify"
+        >
+          Verify Ticket
+        </a>
+
+        <a
+          class="nav-link"
+          href="/profile"
+        >
+          Profile
+        </a>
+
+        <form
+          class="logout-form"
+          action="/logout"
+          method="post"
+        >
+          <button
+            class="nav-link logout-button"
+            type="submit"
+          >
+            Logout
+          </button>
+        </form>
+
+
+        {% elif user_role == "admin" %}
+
+        <a
+          class="nav-link"
+          href="/admin/dashboard"
+        >
+          Dashboard
+        </a>
+
+        <a
+          class="nav-link"
+          href="/admin/organisers"
+        >
+          Organisers
+        </a>
+
+        <a
+          class="nav-link"
+          href="/admin/concerts"
+        >
+          Concerts
+        </a>
+
+        <a
+          class="nav-link"
+          href="/admin/payments"
+        >
+          Payments
+        </a>
+
+        <a
+          class="nav-link"
+          href="/admin/staff/new"
+        >
+          Staff Accounts
+        </a>
+
+        <a
+          class="nav-link"
+          href="/profile"
+        >
+          Profile
+        </a>
+
+        <form
+          class="logout-form"
+          action="/logout"
+          method="post"
+        >
+          <button
+            class="nav-link logout-button"
+            type="submit"
+          >
+            Logout
+          </button>
+        </form>
+
+
         {% else %}
-          <a class="nav-link" href="/register/attendee">
-            Attendee Registration
-          </a>
 
-    <a class="nav-link" href="/register/organiser">
-      Organiser Registration
-    </a>
+        <a
+          class="nav-link"
+          href="/concerts"
+        >
+          Discover
+        </a>
 
-    <a class="nav-link" href="/login">Login</a>
-  {% endif %}
+        <form
+          class="logout-form"
+          action="/logout"
+          method="post"
+        >
+          <button
+            class="nav-link logout-button"
+            type="submit"
+          >
+            Logout
+          </button>
+        </form>
 
-  <a class="btn-pill" href="/concerts/new">
-    + Create Concert
-  </a>
-</div>
+        {% endif %}
+
+      </div>
+
     </div>
+
   </nav>
-  <div class="page">
-    {% block content %}{% endblock %}
-  </div>
+
+
+  <main class="page">
+
+    {% block content %}
+    {% endblock %}
+
+  </main>
+
 </body>
+
 </html>
