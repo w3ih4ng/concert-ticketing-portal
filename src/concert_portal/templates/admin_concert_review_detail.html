@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Review {{ item.concert.title }}{% endblock %}
+
+{% block content %}
+
+<section class="surface dashboard-card">
+
+  <p class="eyebrow">
+    Administrator Concert Review
+  </p>
+
+  <h1>
+    {{ item.concert.title }}
+  </h1>
+
+
+  {% if item.approval.status == "pending" %}
+
+  <div class="banner">
+    Status:
+    <strong>Pending approval</strong>
+  </div>
+
+  {% elif item.approval.status == "approved" %}
+
+  <div class="banner banner-success">
+    Status:
+    <strong>Approved</strong>
+  </div>
+
+  {% elif item.approval.status == "rejected" %}
+
+  <div class="banner banner-error">
+    Status:
+    <strong>Rejected</strong>
+  </div>
+
+  {% endif %}
+
+
+  {% if item.poster %}
+
+  <section class="concert-poster-section">
+
+    <img
+      class="concert-poster"
+      src="/concerts/{{ item.concert.id }}/poster"
+      alt="Poster for {{ item.concert.title }}"
+    >
+
+  </section>
+
+  {% else %}
+
+  <div class="banner">
+    No concert poster has been uploaded.
+  </div>
+
+  {% endif %}
+
+
+  <section class="surface form-card">
+
+    <h2>
+      Concert Details
+    </h2>
+
+    <dl class="info-card">
+
+      <dt>
+        Concert title
+      </dt>
+
+      <dd>
+        {{ item.concert.title }}
+      </dd>
+
+
+      <dt>
+        Date
+      </dt>
+
+      <dd>
+        {{ item.concert.date }}
+      </dd>
+
+
+      <dt>
+        Venue
+      </dt>
+
+      <dd>
+        {{ item.concert.venue }}
+      </dd>
+
+
+      <dt>
+        Organiser
+      </dt>
+
+      <dd>
+        {{ item.concert.organiser }}
+      </dd>
+
+    </dl>
+
+  </section>
+
+
+  <section class="surface form-card">
+
+    <h2>
+      Ticket Sales Period
+    </h2>
+
+    {% if item.sales_period %}
+
+    <p>
+      <strong>Sales start:</strong>
+      {{ item.sales_period.sales_start }}
+    </p>
+
+    <p>
+      <strong>Sales end:</strong>
+      {{ item.sales_period.sales_end }}
+    </p>
+
+    {% else %}
+
+    <p>
+      No ticket sales period has been configured.
+    </p>
+
+    {% endif %}
+
+  </section>
+
+
+  <section class="surface form-card">
+
+    <h2>
+      Ticket Categories
+    </h2>
+
+    {% if item.tickets %}
+
+    {% for ticket in item.tickets %}
+
+    <div class="info-card">
+
+      <p>
+        <strong>Category:</strong>
+        {{ ticket.category }}
+      </p>
+
+      <p>
+        <strong>Price:</strong>
+        RM {{ "%.2f"|format(ticket.price) }}
+      </p>
+
+      <p>
+        <strong>Quantity:</strong>
+        {{ ticket.quantity }}
+      </p>
+
+      <p>
+        <strong>Sold:</strong>
+        {{ ticket.sold }}
+      </p>
+
+    </div>
+
+    {% endfor %}
+
+    {% else %}
+
+    <p>
+      No ticket categories have been created.
+    </p>
+
+    {% endif %}
+
+  </section>
+
+
+  {% if item.approval.status == "pending" %}
+
+  <section class="surface form-card">
+
+    <h2>
+      Approval Decision
+    </h2>
+
+    <p>
+      Review all concert information before
+      approving or rejecting the submission.
+    </p>
+
+
+    <form
+      action="/admin/concerts/{{ item.concert.id }}/approve"
+      method="post"
+    >
+
+      <button type="submit">
+        Approve concert
+      </button>
+
+    </form>
+
+
+    <form
+      action="/admin/concerts/{{ item.concert.id }}/reject"
+      method="post"
+    >
+
+      <button type="submit">
+        Reject concert
+      </button>
+
+    </form>
+
+  </section>
+
+  {% else %}
+
+  <div class="banner">
+    This concert has already been reviewed.
+  </div>
+
+  {% endif %}
+
+
+  <p>
+    <a
+      class="btn-pill"
+      href="/admin/concerts"
+    >
+      ← Back to pending concerts
+    </a>
+  </p>
+
+</section>
+
+{% endblock %}

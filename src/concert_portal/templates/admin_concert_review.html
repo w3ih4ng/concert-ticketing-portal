@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Concert Approval{% endblock %}
+
+{% block content %}
+
+<section class="surface dashboard-card">
+
+  <p class="eyebrow">
+    Administrator
+  </p>
+
+  <h1>
+    Concert Approval
+  </h1>
+
+  <p>
+    Review concerts submitted by organisers
+    before they are made available as approved concerts.
+  </p>
+
+
+  {% if message %}
+
+  <div class="banner banner-success">
+    {{ message }}
+  </div>
+
+  {% endif %}
+
+
+  {% if error %}
+
+  <div class="banner banner-error">
+    {{ error }}
+  </div>
+
+  {% endif %}
+
+
+  {% if review_items %}
+
+  <div class="card-grid">
+
+    {% for item in review_items %}
+
+    <article class="surface form-card">
+
+      <p class="eyebrow">
+        Pending approval
+      </p>
+
+      <h2>
+        {{ item.concert.title }}
+      </h2>
+
+      <p>
+        <strong>Date:</strong>
+        {{ item.concert.date }}
+      </p>
+
+      <p>
+        <strong>Venue:</strong>
+        {{ item.concert.venue }}
+      </p>
+
+      <p>
+        <strong>Organiser:</strong>
+        {{ item.concert.organiser }}
+      </p>
+
+      <p>
+        <a
+          class="btn-pill"
+          href="/admin/concerts/{{ item.concert.id }}"
+        >
+          Review concert
+        </a>
+      </p>
+
+    </article>
+
+    {% endfor %}
+
+  </div>
+
+
+  {% else %}
+
+  <div class="surface form-card">
+
+    <h2>
+      No pending concerts
+    </h2>
+
+    <p>
+      There are currently no concerts
+      waiting for administrator approval.
+    </p>
+
+  </div>
+
+  {% endif %}
+
+
+  <p>
+    <a
+      class="btn-pill"
+      href="/admin/dashboard"
+    >
+      ← Back to admin dashboard
+    </a>
+  </p>
+
+</section>
+
+{% endblock %}

@@ -1,7 +1,26 @@
+from dataclasses import dataclass
+
 from fastapi import HTTPException
 from sqlmodel import Session, func, select
 
-from concert_portal.models import Concert, ConcertApproval
+from concert_portal.models import (
+    Concert,
+    ConcertApproval,
+    ConcertPoster,
+    Ticket,
+    TicketSalesPeriod,
+)
+
+
+@dataclass(frozen=True)
+class ConcertReviewItem:
+    """Concert information required by the admin review pages."""
+
+    concert: Concert
+    approval: ConcertApproval
+    poster: ConcertPoster | None
+    sales_period: TicketSalesPeriod | None
+    tickets: list[Ticket]
 
 
 def get_concert_approval(
@@ -81,7 +100,7 @@ def submit_concert_for_approval(
     if existing.status == "approved":
         raise HTTPException(
             status_code=409,
-            detail="This concert has already been approved.",
+            detail=("This concert has already been approved."),
         )
 
     existing.status = "pending"
@@ -150,3 +169,156 @@ def get_pending_concert_count(
     ).one()
 
     return int(count)
+
+
+def get_concert_review_item(
+    concert_id: int,
+    session: Session,
+) -> ConcertReviewItem:
+    """Return all information needed to review one concert."""
+
+    concert = session.get(
+        Concert,
+        concert_id,
+    )
+
+    if concert is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert not found",
+        )
+
+    approval = get_concert_approval(
+        concert_id,
+        session,
+    )
+
+    if approval is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert approval request not found",
+        )
+
+    poster = session.exec(
+        select(ConcertPoster).where(
+            ConcertPoster.concert_id == concert_id,
+        )
+    ).first()
+
+    sales_period = session.exec(
+        select(TicketSalesPeriod).where(
+            TicketSalesPeriod.concert_id == concert_id,
+        )
+    ).first()
+
+    tickets = list(
+        session.exec(
+            select(Ticket).where(
+                Ticket.concert_id == concert_id,
+            )
+        ).all()
+    )
+
+    return ConcertReviewItem(
+        concert=concert,
+        approval=approval,
+        poster=poster,
+        sales_period=sales_period,
+        tickets=tickets,
+    )
+
+
+def get_pending_concert_review_items(
+    session: Session,
+) -> list[ConcertReviewItem]:
+    """Return all concerts currently awaiting approval."""
+
+    approvals = session.exec(
+        select(ConcertApproval).where(
+            ConcertApproval.status == "pending",
+        )
+    ).all()
+
+    review_items: list[ConcertReviewItem] = []
+
+    for approval in approvals:
+        review_items.append(
+            get_concert_review_item(
+                approval.concert_id,
+                session,
+            )
+        )
+
+    return review_items
+
+
+def approve_concert(
+    concert_id: int,
+    session: Session,
+) -> ConcertApproval:
+    """Approve a pending concert."""
+
+    approval = get_concert_approval(
+        concert_id,
+        session,
+    )
+
+    if approval is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert approval request not found",
+        )
+
+    if approval.status != "pending":
+        raise HTTPException(
+            status_code=409,
+            detail=("Only concerts that are pending approval " "can be approved."),
+        )
+
+    approval.status = "approved"
+
+    session.add(
+        approval,
+    )
+    session.commit()
+    session.refresh(
+        approval,
+    )
+
+    return approval
+
+
+def reject_concert(
+    concert_id: int,
+    session: Session,
+) -> ConcertApproval:
+    """Reject a pending concert."""
+
+    approval = get_concert_approval(
+        concert_id,
+        session,
+    )
+
+    if approval is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concert approval request not found",
+        )
+
+    if approval.status != "pending":
+        raise HTTPException(
+            status_code=409,
+            detail=("Only concerts that are pending approval " "can be rejected."),
+        )
+
+    approval.status = "rejected"
+
+    session.add(
+        approval,
+    )
+    session.commit()
+    session.refresh(
+        approval,
+    )
+
+    return approval
