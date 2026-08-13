@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlmodel import Field, SQLModel
 
 
@@ -214,3 +216,24 @@ class PaymentProofRead(SQLModel):
     id: int
     booking_id: int
     filename: str
+
+
+class ETicket(SQLModel, table=True):
+    """Electronic ticket generated after payment approval."""
+
+    id: int | None = Field(
+        default=None,
+        primary_key=True,
+    )
+    booking_id: int = Field(
+        foreign_key="booking.id",
+        index=True,
+    )
+    ticket_code: str = Field(
+        index=True,
+    )
+    generated_at: datetime = Field(
+        default_factory=lambda: datetime.now(
+            timezone.utc,
+        )
+    )

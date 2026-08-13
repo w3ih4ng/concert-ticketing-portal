@@ -11,6 +11,7 @@ from concert_portal.models import (
     PaymentProof,
     Ticket,
 )
+from concert_portal.services.etickets import generate_eticket
 from concert_portal.web import UPLOAD_DIR
 
 MAX_PAYMENT_PROOF_SIZE = 5 * 1024 * 1024
@@ -332,9 +333,19 @@ def approve_payment_proof(
 
     item.booking.status = "confirmed"
 
-    session.add(item.booking)
+    session.add(
+        item.booking,
+    )
+
+    generate_eticket(
+        item.booking,
+        session,
+    )
+
     session.commit()
-    session.refresh(item.booking)
+    session.refresh(
+        item.booking,
+    )
 
     return item
 
