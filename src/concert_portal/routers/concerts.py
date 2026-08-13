@@ -32,12 +32,14 @@ from concert_portal.services.concert_approvals import (
     is_concert_locked,
     submit_concert_for_approval,
 )
+from concert_portal.services.concert_listing import (
+    get_approved_concerts,
+)
 from concert_portal.services.concerts import (
     create_concert_record,
     create_ticket_record,
     get_concert_by_id,
     get_concert_tickets,
-    get_concerts,
     save_concert_form,
     save_ticket_form,
     update_concert_record,
@@ -89,12 +91,16 @@ def create_concert(
 def concerts_page(
     request: Request,
     error: str | None = None,
+    search: str = "",
+    event_date: str = "",
     session: Session = Depends(get_session),
-) -> Response:
-    """Show all concerts."""
+) -> HTMLResponse:
+    """Show approved concerts to attendees."""
 
-    concerts = get_concerts(
+    concerts = get_approved_concerts(
         session,
+        search=search,
+        event_date=event_date,
     )
 
     return templates.TemplateResponse(
@@ -102,6 +108,8 @@ def concerts_page(
         "concerts.html",
         {
             "concerts": concerts,
+            "search": search,
+            "event_date": event_date,
             "error": _error_message(
                 error,
             ),

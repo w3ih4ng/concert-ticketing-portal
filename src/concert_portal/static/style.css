@@ -829,3 +829,23 @@ textarea:focus-visible {
   max-width: 100%;
   object-fit: contain;
 }
+
+.concert-poster-placeholder {
+  align-items: center;
+  border: 1px dashed currentColor;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  min-height: 220px;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+.card-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(260px, 1fr)
+  );
+}

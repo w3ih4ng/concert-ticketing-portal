@@ -5,7 +5,8 @@ def test_concerts_page_empty(client: TestClient) -> None:
     """The concerts page loads and shows an empty state."""
     response = client.get("/")
     assert response.status_code == 200
-    assert "No concerts yet" in response.text
+    assert "No concerts found" in response.text
+    assert "approved concerts" in response.text
 
 
 def test_create_concert_via_form(client: TestClient) -> None:
