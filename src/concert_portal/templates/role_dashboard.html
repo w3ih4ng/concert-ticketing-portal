@@ -37,12 +37,15 @@
 
   {% elif user.role == "admin" %}
 
+
   {% if pending_concert_count > 0 %}
 
   <div class="banner banner-success">
 
     {{ pending_concert_count }}
+
     concert{% if pending_concert_count != 1 %}s{% endif %}
+
     waiting for approval.
 
   </div>
@@ -59,7 +62,9 @@
     {% if pending_concert_count > 0 %}
 
     <p>
+
       There
+
       {% if pending_concert_count == 1 %}
         is
       {% else %}
@@ -71,7 +76,9 @@
       </strong>
 
       concert{% if pending_concert_count != 1 %}s{% endif %}
+
       awaiting review.
+
     </p>
 
     {% else %}
@@ -82,10 +89,12 @@
 
     {% endif %}
 
-    <p>
-      Concert review and approval actions will be
-      available from the concert approval section.
-    </p>
+    <a
+      class="btn-pill"
+      href="/admin/concerts"
+    >
+      Review concerts
+    </a>
 
   </section>
 
@@ -135,12 +144,14 @@
 
 
   <p>
+
     <a
       class="btn-pill"
       href="/"
     >
       View concerts
     </a>
+
   </p>
 
 </section>

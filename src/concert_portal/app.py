@@ -7,6 +7,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from concert_portal.database import init_db
 from concert_portal.routers import (
+    admin_concerts,
     admin_organisers,
     admin_payments,
 )
@@ -22,9 +23,13 @@ from concert_portal.web import STATIC_DIR
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(
+    app: FastAPI,
+) -> AsyncGenerator[None, None]:
     """Create database tables on startup."""
+
     init_db()
+
     yield
 
 
@@ -34,6 +39,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET_KEY,
@@ -42,20 +48,61 @@ app.add_middleware(
     https_only=False,
 )
 
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-app.include_router(registrations_router)
-app.include_router(auth_router)
-app.include_router(dashboards_router)
-app.include_router(concerts_router)
-app.include_router(bookings_router)
-app.include_router(payments_router)
-app.include_router(admin_payments.router)
-app.include_router(admin_organisers.router)
-app.include_router(profile_router)
+app.mount(
+    "/static",
+    StaticFiles(
+        directory=STATIC_DIR,
+    ),
+    name="static",
+)
+
+
+app.include_router(
+    registrations_router,
+)
+
+app.include_router(
+    auth_router,
+)
+
+app.include_router(
+    dashboards_router,
+)
+
+app.include_router(
+    concerts_router,
+)
+
+app.include_router(
+    bookings_router,
+)
+
+app.include_router(
+    payments_router,
+)
+
+app.include_router(
+    admin_payments.router,
+)
+
+app.include_router(
+    admin_organisers.router,
+)
+
+app.include_router(
+    admin_concerts.router,
+)
+
+app.include_router(
+    profile_router,
+)
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
     """Simple health check endpoint used by tests and monitoring."""
-    return {"status": "ok"}
+
+    return {
+        "status": "ok",
+    }
