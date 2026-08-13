@@ -237,3 +237,9 @@ class ETicket(SQLModel, table=True):
             timezone.utc,
         )
     )
+    checked_in: bool = Field(
+        default=False,
+    )
+    checked_in_at: datetime | None = Field(
+        default=None,
+    )

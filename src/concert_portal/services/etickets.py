@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -199,3 +200,42 @@ def verify_eticket_code(
         ticket=ticket,
         concert=concert,
     )
+
+
+def check_in_eticket(
+    ticket_code: str,
+    session: Session,
+) -> ETicketView:
+    """Mark a valid e-ticket as checked in."""
+
+    result = verify_eticket_code(
+        ticket_code,
+        session,
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Valid e-ticket not found.",
+        )
+
+    if result.eticket.checked_in:
+        raise HTTPException(
+            status_code=409,
+            detail="This e-ticket has already been checked in.",
+        )
+
+    result.eticket.checked_in = True
+    result.eticket.checked_in_at = datetime.now(
+        timezone.utc,
+    )
+
+    session.add(
+        result.eticket,
+    )
+    session.commit()
+    session.refresh(
+        result.eticket,
+    )
+
+    return result
