@@ -3,55 +3,146 @@
 {% block title %}{{ dashboard_role|title }} Dashboard{% endblock %}
 
 {% block content %}
-<section class="surface dashboard-card">
-  <p class="eyebrow">{{ dashboard_role }} portal</p>
 
-  <h1>Welcome, {{ user.name }}</h1>
+<section class="surface dashboard-card">
+
+  <p class="eyebrow">
+    {{ dashboard_role }} portal
+  </p>
+
+  <h1>
+    Welcome, {{ user.name }}
+  </h1>
 
   <p>
     You are logged in as
     <strong>{{ user.role }}</strong>.
   </p>
 
+
   {% if user.role == "organiser" %}
+
   <p>
     Your organiser account has been approved.
     You can now manage concert activities.
   </p>
+
+
   {% elif user.role == "staff" %}
+
   <p>
     Use this dashboard to access staff functions.
   </p>
- {% elif user.role == "admin" %}
+
+
+  {% elif user.role == "admin" %}
+
+  {% if pending_concert_count > 0 %}
+
+  <div class="banner banner-success">
+
+    {{ pending_concert_count }}
+    concert{% if pending_concert_count != 1 %}s{% endif %}
+    waiting for approval.
+
+  </div>
+
+  {% endif %}
+
 
   <section class="surface form-card">
-    <h2>Organiser Account Approval</h2>
+
+    <h2>
+      Concert Approval
+    </h2>
+
+    {% if pending_concert_count > 0 %}
 
     <p>
-      Review organiser registration requests and approve or reject them.
+      There
+      {% if pending_concert_count == 1 %}
+        is
+      {% else %}
+        are
+      {% endif %}
+
+      <strong>
+        {{ pending_concert_count }}
+      </strong>
+
+      concert{% if pending_concert_count != 1 %}s{% endif %}
+      awaiting review.
     </p>
 
-    <a class="btn-pill" href="/admin/organisers">
+    {% else %}
+
+    <p>
+      There are currently no concerts awaiting approval.
+    </p>
+
+    {% endif %}
+
+    <p>
+      Concert review and approval actions will be
+      available from the concert approval section.
+    </p>
+
+  </section>
+
+
+  <section class="surface form-card">
+
+    <h2>
+      Organiser Account Approval
+    </h2>
+
+    <p>
+      Review organiser registration requests
+      and approve or reject them.
+    </p>
+
+    <a
+      class="btn-pill"
+      href="/admin/organisers"
+    >
       Review organiser accounts
     </a>
+
   </section>
+
 
   <section class="surface form-card">
-    <h2>Payment Verification</h2>
+
+    <h2>
+      Payment Verification
+    </h2>
 
     <p>
-      Review attendee payment proofs and approve or reject them.
+      Review attendee payment proofs
+      and approve or reject them.
     </p>
 
-    <a class="btn-pill" href="/admin/payments">
+    <a
+      class="btn-pill"
+      href="/admin/payments"
+    >
       Review payment proofs
     </a>
+
   </section>
 
-{% endif %}
+  {% endif %}
+
+
   <p>
-    <a class="btn-pill" href="/">View concerts</a>
+    <a
+      class="btn-pill"
+      href="/"
+    >
+      View concerts
+    </a>
   </p>
+
 </section>
 
 {% endblock %}

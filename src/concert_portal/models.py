@@ -136,6 +136,18 @@ class TicketSalesPeriod(SQLModel, table=True):
     sales_end: str
 
 
+class ConcertApproval(SQLModel, table=True):
+    """Approval status for a submitted concert."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    concert_id: int = Field(
+        foreign_key="concert.id",
+        index=True,
+        unique=True,
+    )
+    status: str = Field(default="pending")
+
+
 class TicketBase(SQLModel):
     concert_id: int = Field(foreign_key="concert.id")
     category: str

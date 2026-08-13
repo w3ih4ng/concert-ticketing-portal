@@ -4,7 +4,108 @@
 
 {% block content %}
 
-<h1>{{ concert.title }}</h1>
+<h1>
+  {{ concert.title }}
+</h1>
+
+
+{% if submitted %}
+
+<div class="banner banner-success surface">
+  Concert submitted for approval successfully.
+</div>
+
+{% endif %}
+
+
+{% if approval_error %}
+
+<div class="banner banner-error surface">
+  {{ approval_error }}
+</div>
+
+{% endif %}
+
+
+<section class="surface form-card">
+
+  <h2>
+    Approval Status
+  </h2>
+
+  {% if approval_status == "draft" %}
+
+  <p>
+    Status:
+    <strong>Draft</strong>
+  </p>
+
+  <p>
+    Complete the concert information,
+    poster, ticket categories, and sales period
+    before submitting it for approval.
+  </p>
+
+  <form
+    action="/concerts/{{ concert.id }}/submit"
+    method="post"
+  >
+    <button type="submit">
+      Submit for approval
+    </button>
+  </form>
+
+
+  {% elif approval_status == "pending" %}
+
+  <div class="banner">
+    Status:
+    <strong>Pending approval</strong>
+  </div>
+
+  <p>
+    This concert has been submitted to the administrator.
+    Editing is temporarily locked while the request
+    is being reviewed.
+  </p>
+
+
+  {% elif approval_status == "approved" %}
+
+  <div class="banner banner-success">
+    Status:
+    <strong>Approved</strong>
+  </div>
+
+  <p>
+    This concert has been approved.
+  </p>
+
+
+  {% elif approval_status == "rejected" %}
+
+  <div class="banner banner-error">
+    Status:
+    <strong>Rejected</strong>
+  </div>
+
+  <p>
+    You may update the concert information
+    and submit it again for approval.
+  </p>
+
+  <form
+    action="/concerts/{{ concert.id }}/submit"
+    method="post"
+  >
+    <button type="submit">
+      Resubmit for approval
+    </button>
+  </form>
+
+  {% endif %}
+
+</section>
 
 
 {% if poster %}
@@ -36,6 +137,8 @@
 </dl>
 
 
+{% if not concert_locked %}
+
 <p>
 
   <a
@@ -54,48 +157,59 @@
 
 </p>
 
+{% else %}
+
+<div class="banner surface">
+  Concert editing is locked while approval is pending.
+</div>
+
+{% endif %}
+
 
 <section class="surface form-card">
 
-  <h2>Ticket Sales</h2>
+  <h2>
+    Ticket Sales
+  </h2>
 
   {% if sales_period %}
 
-    <p>
-      <strong>Sales start:</strong>
-      {{ sales_period.sales_start }}
-    </p>
+  <p>
+    <strong>Sales start:</strong>
+    {{ sales_period.sales_start }}
+  </p>
 
-    <p>
-      <strong>Sales end:</strong>
-      {{ sales_period.sales_end }}
-    </p>
+  <p>
+    <strong>Sales end:</strong>
+    {{ sales_period.sales_end }}
+  </p>
 
-    {% if sales_status == "open" %}
+  {% if sales_status == "open" %}
 
-    <div class="banner banner-success">
-      Ticket sales are currently open.
-    </div>
+  <div class="banner banner-success">
+    Ticket sales are currently open.
+  </div>
 
-    {% elif sales_status == "not_started" %}
+  {% elif sales_status == "not_started" %}
 
-    <div class="banner">
-      Ticket sales have not started yet.
-    </div>
+  <div class="banner">
+    Ticket sales have not started yet.
+  </div>
 
-    {% elif sales_status == "ended" %}
+  {% elif sales_status == "ended" %}
 
-    <div class="banner banner-error">
-      Ticket sales have ended.
-    </div>
+  <div class="banner banner-error">
+    Ticket sales have ended.
+  </div>
 
-    {% else %}
+  {% else %}
 
-    <div class="banner banner-error">
-      Ticket sales are currently closed.
-    </div>
+  <div class="banner banner-error">
+    Ticket sales are currently closed.
+  </div>
 
-    {% endif %}
+  {% endif %}
+
 
   {% else %}
 
@@ -108,9 +222,13 @@
 </section>
 
 
+{% if not concert_locked %}
+
 <section class="surface form-card">
 
-  <h2>Concert Poster</h2>
+  <h2>
+    Concert Poster
+  </h2>
 
   {% if poster_updated %}
 
@@ -165,9 +283,15 @@
 
 </section>
 
+{% endif %}
 
-<h2>Tickets</h2>
 
+<h2>
+  Tickets
+</h2>
+
+
+{% if not concert_locked %}
 
 <p>
 
@@ -179,6 +303,8 @@
   </a>
 
 </p>
+
+{% endif %}
 
 
 {% if error %}
@@ -199,17 +325,17 @@
 
   {% if sales_status == "not_started" %}
 
-    Ticket booking is not available yet.
-    Sales begin on {{ sales_period.sales_start }}.
+  Ticket booking is not available yet.
+  Sales begin on {{ sales_period.sales_start }}.
 
   {% elif sales_status == "ended" %}
 
-    Ticket booking is closed.
-    Sales ended on {{ sales_period.sales_end }}.
+  Ticket booking is closed.
+  Sales ended on {{ sales_period.sales_end }}.
 
   {% else %}
 
-    Ticket booking is currently unavailable.
+  Ticket booking is currently unavailable.
 
   {% endif %}
 
