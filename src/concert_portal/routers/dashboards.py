@@ -3,9 +3,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session
 
 from concert_portal.database import get_session
-from concert_portal.security import get_session_user, role_redirect_url
-from concert_portal.services.concert_approvals import (
-    get_pending_concert_count,
+from concert_portal.security import (
+    get_session_user,
+    role_redirect_url,
+)
+from concert_portal.services.dashboard_summary import (
+    AdminDashboardSummary,
+    get_admin_dashboard_summary,
 )
 from concert_portal.web import templates
 
@@ -38,10 +42,10 @@ def render_role_dashboard(
             status_code=303,
         )
 
-    pending_concert_count = 0
+    admin_summary: AdminDashboardSummary | None = None
 
     if required_role == "admin":
-        pending_concert_count = get_pending_concert_count(
+        admin_summary = get_admin_dashboard_summary(
             session,
         )
 
@@ -51,7 +55,7 @@ def render_role_dashboard(
         {
             "user": user,
             "dashboard_role": required_role,
-            "pending_concert_count": pending_concert_count,
+            "admin_summary": admin_summary,
         },
     )
 
