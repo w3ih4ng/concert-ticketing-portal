@@ -37,14 +37,119 @@
 
   {% elif user.role == "admin" %}
 
+  <section class="surface form-card">
 
-  {% if pending_concert_count > 0 %}
+    <p class="eyebrow">
+      System Overview
+    </p>
+
+    <h2>
+      Dashboard Summary
+    </h2>
+
+    <div class="card-grid">
+
+      <article class="surface form-card">
+        <p class="eyebrow">
+          Users
+        </p>
+
+        <h2>
+          {{ admin_summary.total_users }}
+        </h2>
+
+        <p>
+          Total registered users
+        </p>
+      </article>
+
+
+      <article class="surface form-card">
+        <p class="eyebrow">
+          Concerts
+        </p>
+
+        <h2>
+          {{ admin_summary.total_concerts }}
+        </h2>
+
+        <p>
+          Total concert records
+        </p>
+      </article>
+
+
+      <article class="surface form-card">
+        <p class="eyebrow">
+          Bookings
+        </p>
+
+        <h2>
+          {{ admin_summary.total_bookings }}
+        </h2>
+
+        <p>
+          Total ticket bookings
+        </p>
+      </article>
+
+
+      <article class="surface form-card">
+        <p class="eyebrow">
+          Organiser Accounts
+        </p>
+
+        <h2>
+          {{ admin_summary.pending_organisers }}
+        </h2>
+
+        <p>
+          Pending organiser approvals
+        </p>
+      </article>
+
+
+      <article class="surface form-card">
+        <p class="eyebrow">
+          Concert Approval
+        </p>
+
+        <h2>
+          {{ admin_summary.pending_concerts }}
+        </h2>
+
+        <p>
+          Concerts awaiting approval
+        </p>
+      </article>
+
+
+      <article class="surface form-card">
+        <p class="eyebrow">
+          Payments
+        </p>
+
+        <h2>
+          {{ admin_summary.pending_payments }}
+        </h2>
+
+        <p>
+          Payments awaiting verification
+        </p>
+      </article>
+
+    </div>
+
+  </section>
+
+
+  {% if admin_summary.pending_concerts > 0 %}
 
   <div class="banner banner-success">
 
-    {{ pending_concert_count }}
+    {{ admin_summary.pending_concerts }}
 
-    concert{% if pending_concert_count != 1 %}s{% endif %}
+    concert{% if admin_summary.pending_concerts != 1 %}s{% endif %}
 
     waiting for approval.
 
@@ -59,26 +164,24 @@
       Concert Approval
     </h2>
 
-    {% if pending_concert_count > 0 %}
+    {% if admin_summary.pending_concerts > 0 %}
 
     <p>
-
       There
 
-      {% if pending_concert_count == 1 %}
+      {% if admin_summary.pending_concerts == 1 %}
         is
       {% else %}
         are
       {% endif %}
 
       <strong>
-        {{ pending_concert_count }}
+        {{ admin_summary.pending_concerts }}
       </strong>
 
-      concert{% if pending_concert_count != 1 %}s{% endif %}
+      concert{% if admin_summary.pending_concerts != 1 %}s{% endif %}
 
       awaiting review.
-
     </p>
 
     {% else %}
@@ -106,8 +209,12 @@
     </h2>
 
     <p>
-      Review organiser registration requests
-      and approve or reject them.
+      <strong>
+        {{ admin_summary.pending_organisers }}
+      </strong>
+
+      organiser account{% if admin_summary.pending_organisers != 1 %}s{% endif %}
+      awaiting review.
     </p>
 
     <a
@@ -127,8 +234,12 @@
     </h2>
 
     <p>
-      Review attendee payment proofs
-      and approve or reject them.
+      <strong>
+        {{ admin_summary.pending_payments }}
+      </strong>
+
+      payment{% if admin_summary.pending_payments != 1 %}s{% endif %}
+      awaiting verification.
     </p>
 
     <a
@@ -144,14 +255,12 @@
 
 
   <p>
-
     <a
       class="btn-pill"
       href="/"
     >
       View concerts
     </a>
-
   </p>
 
 </section>
