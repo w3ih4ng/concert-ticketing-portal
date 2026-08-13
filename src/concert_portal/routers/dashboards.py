@@ -18,13 +18,19 @@ from concert_portal.services.dashboard_summary import (
     AdminDashboardSummary,
     get_admin_dashboard_summary,
 )
-from concert_portal.services.etickets import verify_eticket_code
+from concert_portal.services.etickets import (
+    check_in_eticket,
+    verify_eticket_code,
+)
 from concert_portal.services.users import create_staff_record
 from concert_portal.web import templates
 
 router = APIRouter()
 
 STAFF_CREATED_MESSAGE = "Staff account created successfully."
+CHECK_IN_SUCCESS_MESSAGE = "Attendee checked in successfully."
+CHECK_IN_DUPLICATE_MESSAGE = "This e-ticket has already been checked in."
+CHECK_IN_INVALID_MESSAGE = "Valid e-ticket not found."
 
 
 def render_role_dashboard(
@@ -153,6 +159,100 @@ def staff_ticket_verification_page(
             "code": code,
             "searched": searched,
             "result": result,
+            "check_in_message": None,
+            "check_in_error": None,
+        },
+    )
+
+
+@router.post(
+    "/staff/tickets/check-in",
+    response_class=HTMLResponse,
+)
+def staff_ticket_check_in(
+    request: Request,
+    code: str = Form(""),
+    session: Session = Depends(get_session),
+) -> Response:
+    """SCRUM-149 — Mark a verified attendee e-ticket as checked in."""
+
+    user = get_session_user(
+        request,
+        session,
+    )
+
+    if user is None:
+        return RedirectResponse(
+            url="/login",
+            status_code=303,
+        )
+
+    if user.role != "staff":
+        return RedirectResponse(
+            url=role_redirect_url(
+                user.role,
+            ),
+            status_code=303,
+        )
+
+    normalized_code = code.strip().upper()
+
+    if not normalized_code:
+        return templates.TemplateResponse(
+            request,
+            "staff_ticket_verify.html",
+            {
+                "user": user,
+                "code": code,
+                "searched": True,
+                "result": None,
+                "check_in_message": None,
+                "check_in_error": CHECK_IN_INVALID_MESSAGE,
+            },
+            status_code=404,
+        )
+
+    try:
+        result = check_in_eticket(
+            normalized_code,
+            session,
+        )
+
+    except HTTPException as exc:
+        verification_result = verify_eticket_code(
+            normalized_code,
+            session,
+        )
+
+        if exc.status_code == 409:
+            error = CHECK_IN_DUPLICATE_MESSAGE
+        else:
+            error = CHECK_IN_INVALID_MESSAGE
+
+        return templates.TemplateResponse(
+            request,
+            "staff_ticket_verify.html",
+            {
+                "user": user,
+                "code": normalized_code,
+                "searched": True,
+                "result": verification_result,
+                "check_in_message": None,
+                "check_in_error": error,
+            },
+            status_code=exc.status_code,
+        )
+
+    return templates.TemplateResponse(
+        request,
+        "staff_ticket_verify.html",
+        {
+            "user": user,
+            "code": normalized_code,
+            "searched": True,
+            "result": result,
+            "check_in_message": CHECK_IN_SUCCESS_MESSAGE,
+            "check_in_error": None,
         },
     )
 

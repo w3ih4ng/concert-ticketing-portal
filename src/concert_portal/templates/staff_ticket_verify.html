@@ -19,6 +19,7 @@
     electronic ticket.
   </p>
 
+
   <form
     class="surface form-card"
     action="/staff/tickets/verify"
@@ -45,60 +46,147 @@
   </form>
 
 
+  {% if check_in_message %}
+
+  <div
+    class="banner banner-success surface"
+    role="status"
+  >
+    {{ check_in_message }}
+  </div>
+
+  {% endif %}
+
+
+  {% if check_in_error %}
+
+  <div
+    class="banner banner-error surface"
+    role="alert"
+  >
+    {{ check_in_error }}
+  </div>
+
+  {% endif %}
+
+
   {% if searched %}
 
     {% if result %}
 
-    <div
-      class="banner banner-success surface"
-      role="status"
-    >
-      Valid e-ticket
-    </div>
+      {% if result.eticket.checked_in %}
 
-    <section class="surface form-card">
+      <div
+        class="banner banner-error surface"
+        role="status"
+      >
+        Already checked in
+      </div>
 
-      <p class="eyebrow">
-        Verified Ticket
-      </p>
+      {% else %}
 
-      <h2>
-        {{ result.eticket.ticket_code }}
-      </h2>
+      <div
+        class="banner banner-success surface"
+        role="status"
+      >
+        Valid e-ticket
+      </div>
 
-      <dl class="info-card">
+      {% endif %}
 
-        <dt>Attendee</dt>
-        <dd>{{ result.booking.attendee }}</dd>
 
-        <dt>Concert</dt>
-        <dd>{{ result.concert.title }}</dd>
+      <section class="surface form-card">
 
-        <dt>Date</dt>
-        <dd>{{ result.concert.date }}</dd>
+        <p class="eyebrow">
+          Verified Ticket
+        </p>
 
-        <dt>Venue</dt>
-        <dd>{{ result.concert.venue }}</dd>
+        <h2>
+          {{ result.eticket.ticket_code }}
+        </h2>
 
-        <dt>Ticket Category</dt>
-        <dd>{{ result.ticket.category }}</dd>
+        <dl class="info-card">
 
-        <dt>Quantity</dt>
-        <dd>{{ result.booking.quantity }}</dd>
+          <dt>Attendee</dt>
+          <dd>{{ result.booking.attendee }}</dd>
 
-        <dt>Booking Status</dt>
-        <dd>
-          {{ result.booking.status
-             | replace("_", " ")
-             | title }}
-        </dd>
+          <dt>Concert</dt>
+          <dd>{{ result.concert.title }}</dd>
 
-        <dt>Booking ID</dt>
-        <dd>#{{ result.booking.id }}</dd>
+          <dt>Date</dt>
+          <dd>{{ result.concert.date }}</dd>
 
-      </dl>
+          <dt>Venue</dt>
+          <dd>{{ result.concert.venue }}</dd>
 
-    </section>
+          <dt>Ticket Category</dt>
+          <dd>{{ result.ticket.category }}</dd>
+
+          <dt>Quantity</dt>
+          <dd>{{ result.booking.quantity }}</dd>
+
+          <dt>Booking Status</dt>
+          <dd>
+            {{ result.booking.status
+               | replace("_", " ")
+               | title }}
+          </dd>
+
+          <dt>Entry Status</dt>
+          <dd>
+            {% if result.eticket.checked_in %}
+              Checked In
+            {% else %}
+              Not Checked In
+            {% endif %}
+          </dd>
+
+          {% if result.eticket.checked_in_at %}
+
+          <dt>Checked In At</dt>
+          <dd>
+            {{ result.eticket.checked_in_at }}
+          </dd>
+
+          {% endif %}
+
+          <dt>Booking ID</dt>
+          <dd>#{{ result.booking.id }}</dd>
+
+        </dl>
+
+
+        {% if not result.eticket.checked_in %}
+
+        <form
+          action="/staff/tickets/check-in"
+          method="post"
+          onsubmit="return confirm('Mark this attendee as checked in?');"
+        >
+
+          <input
+            type="hidden"
+            name="code"
+            value="{{ result.eticket.ticket_code }}"
+          >
+
+          <button type="submit">
+            Mark as checked in
+          </button>
+
+        </form>
+
+        {% else %}
+
+        <p class="muted">
+          This ticket has already been used for entry
+          and cannot be checked in again.
+        </p>
+
+        {% endif %}
+
+      </section>
+
 
     {% else %}
 
