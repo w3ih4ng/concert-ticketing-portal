@@ -147,3 +147,55 @@ def get_attendee_eticket(
         ticket=ticket,
         concert=concert,
     )
+
+
+def verify_eticket_code(
+    ticket_code: str,
+    session: Session,
+) -> ETicketView | None:
+    """Return confirmed e-ticket details for staff verification."""
+
+    normalized_code = ticket_code.strip().upper()
+
+    if not normalized_code:
+        return None
+
+    eticket = session.exec(
+        select(ETicket).where(
+            ETicket.ticket_code == normalized_code,
+        )
+    ).first()
+
+    if eticket is None:
+        return None
+
+    booking = session.get(
+        Booking,
+        eticket.booking_id,
+    )
+
+    if booking is None or booking.status != "confirmed":
+        return None
+
+    ticket = session.get(
+        Ticket,
+        booking.ticket_id,
+    )
+
+    if ticket is None:
+        return None
+
+    concert = session.get(
+        Concert,
+        ticket.concert_id,
+    )
+
+    if concert is None:
+        return None
+
+    return ETicketView(
+        eticket=eticket,
+        booking=booking,
+        ticket=ticket,
+        concert=concert,
+    )

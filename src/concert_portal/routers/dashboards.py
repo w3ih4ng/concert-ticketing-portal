@@ -11,6 +11,7 @@ from concert_portal.services.dashboard_summary import (
     AdminDashboardSummary,
     get_admin_dashboard_summary,
 )
+from concert_portal.services.etickets import verify_eticket_code
 from concert_portal.web import templates
 
 router = APIRouter()
@@ -91,6 +92,58 @@ def staff_dashboard(
         request,
         "staff",
         session,
+    )
+
+
+@router.get(
+    "/staff/tickets/verify",
+    response_class=HTMLResponse,
+)
+def staff_ticket_verification_page(
+    request: Request,
+    code: str = "",
+    session: Session = Depends(get_session),
+) -> Response:
+    """SCRUM-146 — Allow staff to verify an attendee e-ticket."""
+
+    user = get_session_user(
+        request,
+        session,
+    )
+
+    if user is None:
+        return RedirectResponse(
+            url="/login",
+            status_code=303,
+        )
+
+    if user.role != "staff":
+        return RedirectResponse(
+            url=role_redirect_url(
+                user.role,
+            ),
+            status_code=303,
+        )
+
+    searched = bool(code.strip())
+
+    result = None
+
+    if searched:
+        result = verify_eticket_code(
+            code,
+            session,
+        )
+
+    return templates.TemplateResponse(
+        request,
+        "staff_ticket_verify.html",
+        {
+            "user": user,
+            "code": code,
+            "searched": searched,
+            "result": result,
+        },
     )
 
 
