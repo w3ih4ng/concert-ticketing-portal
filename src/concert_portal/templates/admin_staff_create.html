@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Create Staff Account{% endblock %}
+
+{% block content %}
+
+<section class="surface dashboard-card">
+
+  <p class="eyebrow">
+    Administrator Portal
+  </p>
+
+  <h1>
+    Create Staff Account
+  </h1>
+
+  <p>
+    Create an account for authorised event staff.
+    The account will automatically receive the
+    staff role.
+  </p>
+
+
+  {% if created %}
+
+  <div
+    class="banner banner-success surface"
+    role="status"
+  >
+    {{ message }}
+  </div>
+
+  {% endif %}
+
+
+  {% if errors.general %}
+
+  <div
+    class="banner banner-error surface"
+    role="alert"
+  >
+    {{ errors.general }}
+  </div>
+
+  {% endif %}
+
+
+  <form
+    class="surface form-card"
+    action="/admin/staff/new"
+    method="post"
+  >
+
+    <label for="name">
+      Staff Name
+    </label>
+
+    <input
+      id="name"
+      name="name"
+      type="text"
+      value="{{ values.name }}"
+      required
+    >
+
+    {% if errors.name %}
+    <p class="form-error">
+      {{ errors.name }}
+    </p>
+    {% endif %}
+
+
+    <label for="email">
+      Email
+    </label>
+
+    <input
+      id="email"
+      name="email"
+      type="email"
+      value="{{ values.email }}"
+      required
+    >
+
+    {% if errors.email %}
+    <p class="form-error">
+      {{ errors.email }}
+    </p>
+    {% endif %}
+
+
+    <label for="phone">
+      Phone Number
+    </label>
+
+    <input
+      id="phone"
+      name="phone"
+      type="text"
+      value="{{ values.phone }}"
+      required
+    >
+
+    {% if errors.phone %}
+    <p class="form-error">
+      {{ errors.phone }}
+    </p>
+    {% endif %}
+
+
+    <label for="password">
+      Initial Password
+    </label>
+
+    <input
+      id="password"
+      name="password"
+      type="password"
+      required
+    >
+
+    {% if errors.password %}
+    <p class="form-error">
+      {{ errors.password }}
+    </p>
+    {% endif %}
+
+
+    <button type="submit">
+      Create Staff Account
+    </button>
+
+  </form>
+
+
+  <p>
+    <a
+      class="btn-pill"
+      href="/admin/dashboard"
+    >
+      Back to admin dashboard
+    </a>
+  </p>
+
+</section>
+
+{% endblock %}

@@ -62,6 +62,61 @@ def register_attendee_record(
     return user
 
 
+def create_staff_record(
+    name: str,
+    email: str,
+    phone: str,
+    password: str,
+    session: Session,
+) -> User:
+    """Validate and create a staff account."""
+
+    errors, values = validate_attendee_registration(
+        name,
+        email,
+        phone,
+        password,
+    )
+
+    if errors:
+        raise HTTPException(
+            status_code=422,
+            detail=errors,
+        )
+
+    if (
+        find_user_by_email(
+            values["email"],
+            session,
+        )
+        is not None
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail={"email": ("An account with this email already exists.")},
+        )
+
+    user = User(
+        name=values["name"],
+        email=values["email"],
+        phone=values["phone"],
+        role="staff",
+        password_hash=password_hash.hash(
+            password,
+        ),
+    )
+
+    session.add(
+        user,
+    )
+    session.commit()
+    session.refresh(
+        user,
+    )
+
+    return user
+
+
 def find_organiser_by_registration_number(
     registration_number: str,
     session: Session,
