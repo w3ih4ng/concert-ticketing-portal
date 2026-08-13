@@ -92,7 +92,7 @@ def test_listing_shows_only_approved_concerts(
     )
 
     response = client.get(
-        "/",
+        "/concerts",
     )
 
     assert response.status_code == 200
@@ -119,7 +119,7 @@ def test_listing_displays_name_date_and_venue(
     )
 
     response = client.get(
-        "/",
+        "/concerts",
     )
 
     assert response.status_code == 200
@@ -146,7 +146,7 @@ def test_listing_links_to_concert_details(
     assert concert.id is not None
 
     response = client.get(
-        "/",
+        "/concerts",
     )
 
     assert response.status_code == 200
@@ -177,7 +177,7 @@ def test_search_filters_by_title(
     )
 
     response = client.get(
-        "/",
+        "/concerts",
         params={
             "search": "rock",
         },
@@ -212,7 +212,7 @@ def test_search_filters_by_venue(
     )
 
     response = client.get(
-        "/",
+        "/concerts",
         params={
             "search": "national",
         },
@@ -239,7 +239,7 @@ def test_search_is_case_insensitive(
     )
 
     response = client.get(
-        "/",
+        "/concerts",
         params={
             "search": "MALAYSIA",
         },
@@ -272,7 +272,7 @@ def test_filter_by_date(
     )
 
     response = client.get(
-        "/",
+        "/concerts",
         params={
             "event_date": "2030-07-20",
         },
@@ -307,7 +307,7 @@ def test_search_and_date_can_be_combined(
     )
 
     response = client.get(
-        "/",
+        "/concerts",
         params={
             "search": "rock",
             "event_date": "2030-05-02",
@@ -335,7 +335,7 @@ def test_no_matching_results_message(
     )
 
     response = client.get(
-        "/",
+        "/concerts",
         params={
             "search": "classical",
         },

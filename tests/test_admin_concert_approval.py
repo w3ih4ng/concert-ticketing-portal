@@ -134,7 +134,7 @@ def test_non_admin_cannot_access_concert_approval(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/concerts"
 
 
 def test_admin_can_view_pending_concerts(
@@ -461,7 +461,7 @@ def test_non_admin_cannot_approve_concert(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/concerts"
 
     session.refresh(
         approval,

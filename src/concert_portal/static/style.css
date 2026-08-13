@@ -849,3 +849,629 @@ textarea:focus-visible {
     minmax(260px, 1fr)
   );
 }
+/* ===== UI INTEGRATION CLEANUP ===== */
+
+.page {
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 2rem 1.25rem 4rem;
+  width: 100%;
+}
+
+.nav-inner {
+  margin: 0 auto;
+  max-width: 1180px;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  width: 100%;
+}
+
+.nav-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.logout-form {
+  margin: 0;
+}
+
+.logout-button {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  font: inherit;
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+}
+
+.logout-button:hover {
+  transform: none;
+}
+
+.dashboard-header,
+.concert-header {
+  margin-bottom: 1.75rem;
+}
+
+.dashboard-header h1,
+.concert-header h1 {
+  margin-bottom: 0.35rem;
+}
+
+.dashboard-card {
+  margin-bottom: 1.75rem;
+  margin-top: 1.5rem;
+  padding: 1.75rem;
+}
+
+.form-card {
+  max-width: none;
+}
+
+.auth-card {
+  max-width: 560px;
+  width: 100%;
+}
+
+.card-grid > .form-card {
+  margin-top: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.dashboard-action-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(240px, 1fr)
+  );
+  margin-bottom: 2rem;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+}
+
+.action-card h2,
+.action-card h3 {
+  margin-bottom: 0.65rem;
+  margin-top: 0;
+}
+
+.action-card p {
+  flex-grow: 1;
+}
+
+.action-card .btn-pill {
+  align-self: flex-start;
+}
+
+.action-card-primary {
+  min-height: 220px;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(150px, 1fr)
+  );
+}
+
+.summary-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.25rem;
+}
+
+.summary-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.summary-number {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.section-heading {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.section-heading h2,
+.section-heading h3 {
+  margin-top: 0;
+}
+
+.concert-layout {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(300px, 1.2fr);
+  margin-bottom: 1.75rem;
+}
+
+.poster-panel,
+.details-panel {
+  padding: 1.5rem;
+}
+
+.concert-poster-large {
+  margin: 0 auto;
+  max-height: 560px;
+  width: 100%;
+}
+
+.details-panel h2 {
+  margin-top: 0;
+}
+
+.organiser-workspace {
+  border-left: 4px solid var(--spotlight);
+}
+
+.management-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+}
+
+.management-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+
+.compact-form {
+  max-width: 620px;
+}
+
+.booking-panel {
+  margin-top: 1.5rem;
+  max-width: 560px;
+  padding: 1.5rem;
+}
+
+.guest-booking-callout {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+}
+
+.button-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.success-state {
+  margin-top: 1.5rem;
+}
+
+.success-state h2 {
+  margin-top: 1.5rem;
+}
+
+.back-link {
+  margin-top: 1.5rem;
+}
+
+.empty-state {
+  padding: 1.5rem;
+  text-align: center;
+}
+
+form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  margin-top: 1rem;
+}
+
+form input,
+form textarea,
+form select {
+  width: 100%;
+}
+
+form button {
+  margin-top: 1.25rem;
+}
+
+.stub {
+  cursor: default;
+}
+
+label.stub {
+  cursor: pointer;
+}
+
+@media (max-width: 850px) {
+  .concert-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-inner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .nav-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 1.25rem 0.9rem 3rem;
+  }
+
+  .dashboard-card,
+  .action-card,
+  .poster-panel,
+  .details-panel {
+    padding: 1.2rem;
+  }
+
+  .summary-grid,
+  .dashboard-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .management-actions,
+  .button-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .management-actions .btn-pill,
+  .button-row .btn-pill {
+    text-align: center;
+    width: 100%;
+  }
+}
+
+/* ===== FINAL UI LAYOUT ===== */
+
+.home-hero {
+  margin-bottom: 2rem;
+  padding: 2.5rem;
+}
+
+.home-hero-content {
+  max-width: 700px;
+}
+
+.home-hero h1 {
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  margin: 0.4rem 0 0.8rem;
+}
+
+.home-intro {
+  font-size: 1.05rem;
+  max-width: 650px;
+}
+
+.home-section {
+  margin-bottom: 2rem;
+}
+
+.home-steps {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+}
+
+.steps-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.step-item {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.9rem;
+}
+
+.step-item > strong {
+  align-items: center;
+  background: var(--marquee);
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  flex: 0 0 34px;
+  height: 34px;
+  justify-content: center;
+}
+
+.step-item h3 {
+  margin: 0 0 0.25rem;
+}
+
+.step-item p {
+  margin: 0;
+}
+
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+  margin-bottom: 0.35rem;
+}
+
+.filter-bar {
+  align-items: end;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(240px, 2fr) minmax(180px, 1fr) auto;
+  margin-bottom: 1.75rem;
+  padding: 1.25rem;
+}
+
+.filter-field label {
+  margin-top: 0;
+}
+
+.filter-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.filter-actions button {
+  margin: 0;
+}
+
+.btn-secondary {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  display: inline-block;
+  padding: 0.7rem 1rem;
+  text-decoration: none;
+}
+
+.concert-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(260px, 1fr)
+  );
+}
+
+.concert-card {
+  overflow: hidden;
+}
+
+.concert-card-poster,
+.concert-card-placeholder {
+  aspect-ratio: 4 / 3;
+  border-radius: 0;
+  height: auto;
+  margin: 0;
+  object-fit: cover;
+  width: 100%;
+}
+
+.concert-card-placeholder {
+  align-items: center;
+  border-bottom: 1px dashed var(--fog);
+  display: flex;
+  justify-content: center;
+  opacity: 0.65;
+}
+
+.concert-card-body {
+  padding: 1.25rem;
+}
+
+.concert-card-body h2,
+.concert-card-body h3 {
+  margin-top: 0;
+}
+
+.concert-card-details {
+  display: grid;
+  gap: 0.35rem 0.75rem;
+  grid-template-columns: auto 1fr;
+  margin-bottom: 1.2rem;
+}
+
+.concert-card-details dt {
+  font-weight: 700;
+}
+
+.concert-card-details dd {
+  margin: 0;
+}
+
+@media (max-width: 750px) {
+  .filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .steps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-hero {
+    padding: 1.5rem;
+  }
+}
+
+
+/* ===== ROLE DASHBOARD + CONCERT DETAIL ===== */
+
+.role-hidden {
+  display: none !important;
+}
+
+.concert-detail-header {
+  margin-bottom: 1.25rem;
+}
+
+.concert-detail-header h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  margin-bottom: 0.25rem;
+}
+
+.concert-detail-poster {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+}
+
+.concert-detail-poster .concert-poster {
+  margin: 0 auto;
+  max-height: 500px;
+}
+
+.concert-info-panel,
+.ticket-sales-panel,
+.organiser-management {
+  margin-bottom: 1.25rem;
+  padding: 1.5rem;
+}
+
+.organiser-management {
+  border-left: 4px solid var(--spotlight);
+}
+
+.sales-period-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.sales-period-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ticket-section {
+  margin-top: 1.75rem;
+}
+
+.booking-box {
+  margin-top: 1.25rem;
+  max-width: 600px;
+  padding: 1.5rem;
+}
+
+.dashboard-action-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(230px, 1fr)
+  );
+}
+
+.action-card {
+  padding: 1.4rem;
+}
+
+.action-card h2,
+.action-card h3 {
+  margin-top: 0;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(
+    3,
+    minmax(0, 1fr)
+  );
+}
+
+.summary-card {
+  padding: 1.25rem;
+}
+
+.summary-card p {
+  margin-bottom: 0;
+}
+
+.summary-number {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  margin: 0.5rem 0;
+}
+
+.admin-management {
+  margin-top: 2rem;
+}
+
+.workflow-panel {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+}
+
+.workflow-row {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.workflow-row > div {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+}
+
+.workflow-row strong {
+  align-items: center;
+  background: var(--marquee);
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  flex: 0 0 30px;
+  height: 30px;
+  justify-content: center;
+}
+
+.staff-primary-action {
+  max-width: 600px;
+  padding-top: 0.5rem;
+}
+
+@media (max-width: 800px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .workflow-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

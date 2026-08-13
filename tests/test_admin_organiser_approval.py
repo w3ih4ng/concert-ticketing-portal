@@ -105,7 +105,7 @@ def test_non_admin_cannot_access_organiser_review(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/concerts"
 
 
 def test_admin_can_view_pending_organiser(
@@ -336,7 +336,7 @@ def test_non_admin_cannot_approve_organiser(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/concerts"
 
     session.refresh(profile)
 

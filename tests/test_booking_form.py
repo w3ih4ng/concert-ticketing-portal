@@ -100,7 +100,7 @@ def test_unknown_ticket_booking_form_redirects_home_with_error(client: TestClien
         follow_redirects=False,
     )
     assert response.status_code == 303
-    assert response.headers["location"] == "/?error=not_found"
+    assert response.headers["location"] == "/concerts?error=not_found"
 
     followed = client.get(response.headers["location"])
     assert "That ticket could not be found" in followed.text

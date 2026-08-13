@@ -19,6 +19,22 @@ from concert_portal.web import templates
 router = APIRouter()
 
 
+@router.get(
+    "/register",
+    response_class=HTMLResponse,
+)
+def registration_choice(
+    request: Request,
+) -> HTMLResponse:
+    """Show available account registration types."""
+
+    return templates.TemplateResponse(
+        request,
+        "register.html",
+        {},
+    )
+
+
 @router.post(
     "/users/attendees",
     response_model=UserRead,

@@ -88,6 +88,29 @@ def create_concert(
     "/",
     response_class=HTMLResponse,
 )
+def home_page(
+    request: Request,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    """Show the public Concert Portal landing page."""
+
+    concerts = get_approved_concerts(
+        session,
+    )
+
+    return templates.TemplateResponse(
+        request,
+        "home.html",
+        {
+            "featured_concerts": concerts[:3],
+        },
+    )
+
+
+@router.get(
+    "/concerts",
+    response_class=HTMLResponse,
+)
 def concerts_page(
     request: Request,
     error: str | None = None,
@@ -288,7 +311,7 @@ def ticket_new_submit(
 
     if concert is None:
         return RedirectResponse(
-            url="/?error=concert_missing",
+            url="/concerts?error=concert_missing",
             status_code=303,
         )
 

@@ -33,8 +33,11 @@ def authenticate_user(email: str, password: str, session: Session) -> User | Non
     return user
 
 
-def create_login_session(request: Request, user: User) -> None:
-    """Store only the minimum user identity required by the session."""
+def create_login_session(
+    request: Request,
+    user: User,
+) -> None:
+    """Store the minimum user identity required by the session."""
 
     if user.id is None:
         raise HTTPException(
@@ -44,6 +47,7 @@ def create_login_session(request: Request, user: User) -> None:
 
     request.session.clear()
     request.session["user_id"] = user.id
+    request.session["user_role"] = user.role
 
 
 def get_session_user(request: Request, session: Session) -> User | None:
@@ -101,10 +105,13 @@ def role_redirect_url(role: str) -> str:
     """Return the destination associated with a user role."""
 
     destinations = {
-        "attendee": "/",
+        "attendee": "/concerts",
         "organiser": "/organiser/dashboard",
         "staff": "/staff/dashboard",
         "admin": "/admin/dashboard",
     }
 
-    return destinations.get(role, "/")
+    return destinations.get(
+        role,
+        "/",
+    )

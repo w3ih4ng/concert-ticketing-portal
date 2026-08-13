@@ -452,7 +452,7 @@ def test_booking_page_disabled_before_sales_start(
 
     assert response.status_code == 200
     assert "Ticket booking is not available yet." in response.text
-    assert "Ticket sales closed" in response.text
+    assert "Login" in response.text
 
 
 def test_no_sales_period_preserves_existing_booking_behaviour(

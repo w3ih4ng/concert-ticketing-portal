@@ -79,7 +79,7 @@ def test_create_ticket_via_form_missing_concert(client: TestClient) -> None:
         follow_redirects=False,
     )
     assert response.status_code == 303
-    assert response.headers["location"] == "/?error=concert_missing"
+    assert response.headers["location"] == "/concerts?error=concert_missing"
 
     followed = client.get(response.headers["location"])
     assert "That concert could not be found" in followed.text

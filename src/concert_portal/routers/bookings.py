@@ -226,7 +226,7 @@ def booking_new_submit(
 
     if ticket is None:
         return RedirectResponse(
-            url="/?error=not_found",
+            url="/concerts?error=not_found",
             status_code=303,
         )
 
