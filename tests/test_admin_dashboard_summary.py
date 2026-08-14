@@ -7,7 +7,9 @@ from concert_portal.models import (
     Booking,
     Concert,
     ConcertApproval,
+    ETicket,
     OrganiserProfile,
+    PaymentProof,
     Ticket,
     User,
 )
@@ -115,6 +117,8 @@ def test_admin_dashboard_shows_zero_summary(
     assert "Total registered users" in response.text
     assert "Total concert records" in response.text
     assert "Total ticket bookings" in response.text
+    assert "Total payments" in response.text
+    assert "Total attendee check-ins" in response.text
     assert "Pending organiser approvals" in response.text
     assert "Concerts awaiting approval" in response.text
     assert "Payments awaiting verification" in response.text
@@ -397,3 +401,104 @@ def test_confirmed_payment_not_counted_as_pending(
     )
 
     assert "0 payments awaiting verification" in visible_text
+
+
+def test_admin_dashboard_counts_payments_and_checkins(
+    client: TestClient,
+    session: Session,
+) -> None:
+    """The dashboard counts payment records and completed check-ins."""
+
+    _create_user(
+        session,
+        name="Admin User",
+        email="admin@example.com",
+        role="admin",
+    )
+
+    concert = Concert(
+        title="Dashboard Statistics Concert",
+        date="2030-11-01",
+        venue="Main Arena",
+        organiser="Test Events",
+    )
+
+    session.add(
+        concert,
+    )
+    session.commit()
+    session.refresh(
+        concert,
+    )
+
+    assert concert.id is not None
+
+    ticket = Ticket(
+        concert_id=concert.id,
+        category="Standard",
+        price=80.00,
+        quantity=20,
+    )
+
+    session.add(
+        ticket,
+    )
+    session.commit()
+    session.refresh(
+        ticket,
+    )
+
+    assert ticket.id is not None
+
+    booking = Booking(
+        ticket_id=ticket.id,
+        attendee="Checked In Attendee",
+        quantity=1,
+        status="confirmed",
+    )
+
+    session.add(
+        booking,
+    )
+    session.commit()
+    session.refresh(
+        booking,
+    )
+
+    assert booking.id is not None
+
+    proof = PaymentProof(
+        booking_id=booking.id,
+        filename="payment-proof.jpg",
+    )
+
+    eticket = ETicket(
+        booking_id=booking.id,
+        ticket_code="TEST-CHECKIN-001",
+        checked_in=True,
+    )
+
+    session.add(
+        proof,
+    )
+    session.add(
+        eticket,
+    )
+    session.commit()
+
+    _login_admin(
+        client,
+    )
+
+    response = client.get(
+        "/admin/dashboard",
+    )
+
+    assert response.status_code == 200
+
+    visible_text = _visible_text(
+        response.text,
+    )
+
+    assert "Total payments" in visible_text
+    assert "Total attendee check-ins" in visible_text

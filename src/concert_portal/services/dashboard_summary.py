@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 
-from sqlmodel import Session, func, select
+from sqlmodel import Session, col, func, select
 
 from concert_portal.models import (
     Booking,
     Concert,
     ConcertApproval,
+    ETicket,
     OrganiserProfile,
+    PaymentProof,
     User,
 )
 
@@ -18,6 +20,8 @@ class AdminDashboardSummary:
     total_users: int
     total_concerts: int
     total_bookings: int
+    total_payments: int
+    total_checkins: int
     pending_organisers: int
     pending_concerts: int
     pending_payments: int
@@ -38,6 +42,16 @@ def get_admin_dashboard_summary(
     session: Session,
 ) -> AdminDashboardSummary:
     """Return statistics required by the administrator dashboard."""
+
+    total_payments = session.exec(select(func.count()).select_from(PaymentProof)).one()
+
+    total_checkins = session.exec(
+        select(func.count())
+        .select_from(ETicket)
+        .where(
+            col(ETicket.checked_in).is_(True),
+        )
+    ).one()
 
     pending_organisers = session.exec(
         select(func.count())
@@ -75,6 +89,12 @@ def get_admin_dashboard_summary(
         total_bookings=_count_all(
             Booking,
             session,
+        ),
+        total_payments=int(
+            total_payments,
+        ),
+        total_checkins=int(
+            total_checkins,
         ),
         pending_organisers=int(
             pending_organisers,
