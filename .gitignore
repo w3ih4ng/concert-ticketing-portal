@@ -12,11 +12,10 @@ __pycache__/
 htmlcov/
 .env
 *.db
-uploads/
+!concert_portal.db
 *:Zone.Identifier
+
 # Claude Code (local tool, not part of project)
 CLAUDE.md
 CLAUDE.local.md
 .claude/
-src/concert_portal/uploads/*
-!src/concert_portal/uploads/.gitkeep
